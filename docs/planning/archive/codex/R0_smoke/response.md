@@ -1,0 +1,2 @@
+CODEX_OK model=gpt-6 effort=UNKNOWN
+SOURCES_LINES=15

@@ -1,0 +1,33 @@
+{
+ "round": "R8_reverify_1",
+ "call_no": 14,
+ "session": "B5 신규(독립 세션)",
+ "thread_id": "<thread-id>",
+ "started_at": "2026-11-01T14:18:40Z",
+ "finished_at": "2026-11-01T14:24:03Z",
+ "exit_code": 0,
+ "response_bytes": 18931,
+ "usage": {
+  "input_tokens": 1720707,
+  "cached_input_tokens": 1608064,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 18152,
+  "reasoning_output_tokens": 6717
+ },
+ "verdicts": {
+  "VERIFIED": 44,
+  "INSUFFICIENT": 11
+ },
+ "new_findings": {
+  "R8-01": "High",
+  "R8-02": "Critical",
+  "R8-03": "High",
+  "R8-04": "High",
+  "R8-05": "High",
+  "R8-06": "High",
+  "R8-07": "Medium",
+  "R8-08": "Medium",
+  "R8-09": "Medium",
+  "R8-10": "Low"
+ }
+}

@@ -1,0 +1,2086 @@
+{
+"00_product/PRODUCT_REQUIREMENTS.md": {
+"REQ": [
+"REQ-CAP-01",
+"REQ-CAP-02",
+"REQ-CAP-03",
+"REQ-CAP-04",
+"REQ-CAP-05",
+"REQ-CAP-06",
+"REQ-CAP-07",
+"REQ-CAP-08",
+"REQ-CAP-09",
+"REQ-CE-01",
+"REQ-CE-02",
+"REQ-CE-03",
+"REQ-CE-04",
+"REQ-CE-05",
+"REQ-CE-06",
+"REQ-CE-07",
+"REQ-CE-08",
+"REQ-CE-09",
+"REQ-CE-10",
+"REQ-CE-11",
+"REQ-CE-12",
+"REQ-DEV-01",
+"REQ-DEV-02",
+"REQ-DEV-03",
+"REQ-DEV-04",
+"REQ-DEV-05",
+"REQ-GOAL-01",
+"REQ-GOAL-02",
+"REQ-GOAL-03",
+"REQ-GOAL-04",
+"REQ-GOAL-05",
+"REQ-GOAL-06",
+"REQ-GOAL-07",
+"REQ-LIM-01",
+"REQ-LIM-02",
+"REQ-LIM-03",
+"REQ-LIM-04",
+"REQ-MODE-01",
+"REQ-MODE-02",
+"REQ-MODE-03",
+"REQ-MODE-04",
+"REQ-MODE-05",
+"REQ-MODE-06",
+"REQ-OPS-01",
+"REQ-OPS-02",
+"REQ-OPS-03",
+"REQ-OPS-04",
+"REQ-OPS-05",
+"REQ-OPS-06",
+"REQ-OPS-07",
+"REQ-PH-01",
+"REQ-PH-02",
+"REQ-PH-03",
+"REQ-PH-04",
+"REQ-PH-05",
+"REQ-PH-06",
+"REQ-PH-07",
+"REQ-PH-08",
+"REQ-PM-01",
+"REQ-PM-02",
+"REQ-PM-03",
+"REQ-PM-04",
+"REQ-PM-05",
+"REQ-PM-06",
+"REQ-PM-07",
+"REQ-PM-08",
+"REQ-REC-01",
+"REQ-REC-02",
+"REQ-REC-03",
+"REQ-REC-04",
+"REQ-REC-05",
+"REQ-REC-06",
+"REQ-REC-07",
+"REQ-REC-08",
+"REQ-REC-09",
+"REQ-REC-10",
+"REQ-REC-11",
+"REQ-REC-12",
+"REQ-REC-13",
+"REQ-REC-14",
+"REQ-REC-15",
+"REQ-SEC-01",
+"REQ-SEC-02",
+"REQ-SEC-03",
+"REQ-SEC-04",
+"REQ-SEC-05",
+"REQ-SEC-06",
+"REQ-SK-01",
+"REQ-SK-02",
+"REQ-SK-03",
+"REQ-SK-04",
+"REQ-SK-05",
+"REQ-SK-06",
+"REQ-SK-07",
+"REQ-SK-08",
+"REQ-SK-09",
+"REQ-SK-10",
+"REQ-SK-11",
+"REQ-SK-12",
+"REQ-SM-01",
+"REQ-SM-02",
+"REQ-SM-03",
+"REQ-SM-04",
+"REQ-SM-05",
+"REQ-SM-06",
+"REQ-SM-07",
+"REQ-SM-08",
+"REQ-SM-09",
+"REQ-SM-10",
+"REQ-SM-11",
+"REQ-SM-12",
+"REQ-SM-13",
+"REQ-STATE-01",
+"REQ-STATE-02",
+"REQ-STATE-03",
+"REQ-STATE-04",
+"REQ-UI-01",
+"REQ-UI-02",
+"REQ-UI-03",
+"REQ-UI-04",
+"REQ-UI-05",
+"REQ-UI-06",
+"REQ-UI-07",
+"REQ-UI-08",
+"REQ-WS-01",
+"REQ-WS-02",
+"REQ-WS-03",
+"REQ-WS-04",
+"REQ-WS-05",
+"REQ-WS-06",
+"REQ-WS-07",
+"REQ-WS-08",
+"REQ-WS-09",
+"REQ-WS-10",
+"REQ-WS-11",
+"REQ-WS-12",
+"REQ-WS-13"
+],
+"AC": [
+"AC-P08b-3"
+],
+"TEST": [
+"LIM-01",
+"LIM-02",
+"LIM-03",
+"LIM-04",
+"REC-01",
+"REC-02",
+"REC-03",
+"REC-04",
+"REC-05",
+"REC-06",
+"REC-07",
+"REC-08",
+"REC-09",
+"REC-10",
+"REC-11",
+"REC-12",
+"REC-13",
+"REC-14",
+"REC-15",
+"TEST-BG-01",
+"TEST-LIM-01",
+"TEST-RF-01",
+"TEST-SE-10"
+],
+"CAP": [
+"CAP-01",
+"CAP-02",
+"CAP-03",
+"CAP-04",
+"CAP-05",
+"CAP-06",
+"CAP-07",
+"CAP-08",
+"CAP-09"
+],
+"D": [
+"D14"
+],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P03",
+"P04",
+"P05",
+"P06",
+"P07",
+"P08a",
+"P08b",
+"P09",
+"P10a",
+"P10b",
+"P11a"
+],
+"SPIKE": [
+"S9"
+],
+"EVENT": [
+"SkillSelected"
+],
+"ENUM": [
+"acceptEdits",
+"bypassPermissions",
+"conditional",
+"dontAsk",
+"granular",
+"never",
+"on-request",
+"readOnly",
+"supported",
+"unsupported",
+"untrusted"
+],
+"U": [
+"U1",
+"U5",
+"U8",
+"U9"
+],
+"NUM": [
+"15분"
+]
+},
+"00_product/UI_UX_SPECIFICATION.md": {
+"REQ": [
+"REQ-CAP-01",
+"REQ-CAP-06",
+"REQ-GOAL-03",
+"REQ-GOAL-07",
+"REQ-PH-07",
+"REQ-SK-09",
+"REQ-UI-01",
+"REQ-UI-02",
+"REQ-UI-03",
+"REQ-UI-04",
+"REQ-UI-05",
+"REQ-UI-06",
+"REQ-UI-07",
+"REQ-WS-01",
+"REQ-WS-03",
+"REQ-WS-13"
+],
+"AC": [],
+"TEST": [],
+"CAP": [
+"CAP-01",
+"CAP-06"
+],
+"D": [],
+"R": [
+"R1",
+"R2",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P06",
+"P07",
+"P11c",
+"P12"
+],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [
+"U1",
+"U8"
+],
+"NUM": [
+"15분"
+]
+},
+"01_architecture/ARCHITECTURE_COMPARISON.md": {
+"REQ": [
+"REQ-GOAL-06"
+],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/FINAL_ARCHITECTURE_DECISIONS.md": {
+"REQ": [
+"REQ-CAP-08"
+],
+"AC": [],
+"TEST": [],
+"CAP": [
+"CAP-01",
+"CAP-08"
+],
+"D": [
+"D1",
+"D10",
+"D11",
+"D12",
+"D13",
+"D14",
+"D15",
+"D16",
+"D17",
+"D18",
+"D19",
+"D2",
+"D20",
+"D21",
+"D22",
+"D23",
+"D24",
+"D25",
+"D26",
+"D27",
+"D28",
+"D3",
+"D4",
+"D5",
+"D6",
+"D7",
+"D8",
+"D9"
+],
+"R": [
+"R1",
+"R2",
+"R21",
+"R4",
+"R6"
+],
+"ADR": [
+"ADR-0001",
+"ADR-0002",
+"ADR-0003",
+"ADR-0004",
+"ADR-0005",
+"ADR-0006",
+"ADR-0007",
+"ADR-0008"
+],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P03",
+"P04",
+"P05",
+"P06",
+"P07",
+"P08a",
+"P08b",
+"P08c",
+"P09",
+"P10a",
+"P10b",
+"P11a",
+"P11b",
+"P11c",
+"P12"
+],
+"SPIKE": [
+"S1a",
+"S4",
+"S5",
+"S6",
+"S7",
+"S9"
+],
+"EVENT": [
+"approval_requested",
+"item_finished",
+"item_started",
+"item_updated",
+"message_delta",
+"user_input_requested"
+],
+"ENUM": [
+"APPLIED_VERIFIED",
+"DISCOVERED",
+"ENFORCED",
+"INJECTION_ACCEPTED",
+"LOAD_OBSERVED",
+"POLICY_ONLY",
+"conditional",
+"granular",
+"never",
+"on-request",
+"supported",
+"unsupported",
+"untrusted"
+],
+"U": [
+"U1",
+"U3",
+"U4",
+"U5",
+"U8",
+"U9"
+],
+"NUM": [
+"120분",
+"15분",
+"20분",
+"2회",
+"30분",
+"3회",
+"90/20"
+]
+},
+"01_architecture/SYSTEM_ARCHITECTURE.md": {
+"REQ": [
+"REQ-CAP-08"
+],
+"AC": [],
+"TEST": [
+"TEST-BG-06"
+],
+"CAP": [
+"CAP-08"
+],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [
+"ADR-0001",
+"ADR-0004",
+"ADR-0005"
+],
+"PHASE": [
+"P00"
+],
+"SPIKE": [
+"S9"
+],
+"EVENT": [
+"ApprovalDecided",
+"SkillSelected"
+],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/TECH_STACK_DECISIONS.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1",
+"R21",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [
+"ADR-0001",
+"ADR-0007"
+],
+"PHASE": [
+"P00"
+],
+"SPIKE": [
+"S6"
+],
+"EVENT": [],
+"ENUM": [],
+"U": [
+"U1"
+],
+"NUM": []
+},
+"01_architecture/adr/ADR-0001-TypeScript-단일-언어.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1"
+],
+"ADR": [
+"ADR-0001"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0002-Electron-데스크톱-프레임워크.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1"
+],
+"ADR": [
+"ADR-0002"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0003-C-Hybrid.md": {
+"REQ": [
+"REQ-GOAL-06"
+],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1"
+],
+"ADR": [
+"ADR-0003"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0004-React-19-+-외부-store.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [],
+"ADR": [
+"ADR-0004"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0005-SQLite.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1"
+],
+"ADR": [
+"ADR-0005"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0006-Agent-Gateway.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1"
+],
+"ADR": [
+"ADR-0006"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0007-인증-모드를-공급자별-1급-설정으로,-MVP-기본-API-key.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R21"
+],
+"ADR": [
+"ADR-0007"
+],
+"PHASE": [
+"P00"
+],
+"SPIKE": [
+"S3"
+],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/ADR-0008-패키징-electron-builder-v26-+-electron-upda.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [],
+"ADR": [
+"ADR-0008"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"01_architecture/adr/README.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1"
+],
+"ADR": [
+"ADR-0001",
+"ADR-0002",
+"ADR-0003",
+"ADR-0004",
+"ADR-0005",
+"ADR-0006",
+"ADR-0007",
+"ADR-0008"
+],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [],
+"NUM": []
+},
+"02_agents_state/AGENT_INTEGRATION_DESIGN.md": {
+"REQ": [
+"REQ-CAP-01",
+"REQ-CAP-08",
+"REQ-CE-08",
+"REQ-MODE-01",
+"REQ-OPS-02",
+"REQ-SEC-05",
+"REQ-SM-01",
+"REQ-WS-01"
+],
+"AC": [],
+"TEST": [
+"TEST-SE-10"
+],
+"CAP": [
+"CAP-01",
+"CAP-02",
+"CAP-03",
+"CAP-04",
+"CAP-05",
+"CAP-06",
+"CAP-07",
+"CAP-08",
+"CAP-09"
+],
+"D": [
+"D14"
+],
+"R": [
+"R2",
+"R21",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [
+"ADR-0006",
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P10b"
+],
+"SPIKE": [
+"S1a",
+"S1b",
+"S1c",
+"S2",
+"S9"
+],
+"EVENT": [
+"ApprovalDecided",
+"approval_requested",
+"item_finished",
+"item_started",
+"item_updated",
+"message_delta",
+"user_input_requested"
+],
+"ENUM": [
+"DETECTED",
+"acceptEdits",
+"bypassPermissions",
+"conditional",
+"dangerFullAccess",
+"dontAsk",
+"granular",
+"never",
+"on-request",
+"readOnly",
+"supported",
+"unsupported",
+"untrusted",
+"workspaceWrite"
+],
+"U": [
+"U1",
+"U8",
+"U9"
+],
+"NUM": [
+"15분"
+]
+},
+"02_agents_state/COLLABORATION_PROTOCOL.md": {
+"REQ": [
+"REQ-CE-01",
+"REQ-CE-05",
+"REQ-DEV-04",
+"REQ-MODE-01",
+"REQ-MODE-06",
+"REQ-SM-08"
+],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R1",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [
+"workspaceWrite"
+],
+"U": [],
+"NUM": [
+"2회",
+"3회"
+]
+},
+"02_agents_state/DATABASE_SCHEMA.md": {
+"REQ": [
+"REQ-OPS-05",
+"REQ-SEC-03",
+"REQ-SK-06",
+"REQ-SM-06",
+"REQ-STATE-01"
+],
+"AC": [],
+"TEST": [
+"LIM-05"
+],
+"CAP": [],
+"D": [],
+"R": [
+"R1",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P01"
+],
+"SPIKE": [],
+"EVENT": [
+"ApprovalDecided",
+"AuditSignal",
+"ExternalSessionImported",
+"HookToggled",
+"InstructionFileChanged",
+"McpCallObserved",
+"ProcessObserved",
+"SessionRegistered",
+"SettingsFileChanged",
+"SkillInjectionAccepted",
+"SkillLoadObserved",
+"SkillSelected",
+"ToolServerAction"
+],
+"ENUM": [],
+"U": [],
+"NUM": [
+"120분",
+"20분"
+]
+},
+"02_agents_state/PHASE_MANAGEMENT_DESIGN.md": {
+"REQ": [
+"REQ-PH-01",
+"REQ-SM-07",
+"REQ-SM-13",
+"REQ-STATE-01",
+"REQ-WS-13"
+],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [
+"D14"
+],
+"R": [
+"R1",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P01",
+"P09"
+],
+"SPIKE": [],
+"EVENT": [
+"SkillSelected"
+],
+"ENUM": [
+"APPLIED_VERIFIED",
+"LOAD_OBSERVED"
+],
+"U": [],
+"NUM": [
+"120분",
+"15분",
+"20분",
+"2회"
+]
+},
+"02_agents_state/SESSION_RECOVERY_DESIGN.md": {
+"REQ": [
+"REQ-CE-07",
+"REQ-GOAL-06",
+"REQ-REC-01",
+"REQ-SM-01",
+"REQ-SM-09",
+"REQ-SM-13",
+"REQ-WS-09"
+],
+"AC": [],
+"TEST": [
+"REC-01",
+"REC-02",
+"REC-03",
+"REC-04",
+"REC-05",
+"REC-06",
+"REC-07",
+"REC-08",
+"REC-09",
+"REC-10",
+"REC-11",
+"REC-12",
+"REC-13",
+"REC-14",
+"REC-15"
+],
+"CAP": [],
+"D": [],
+"R": [
+"R1",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P00"
+],
+"SPIKE": [
+"S5"
+],
+"EVENT": [
+"item_finished"
+],
+"ENUM": [
+"LOAD_OBSERVED"
+],
+"U": [],
+"NUM": [
+"15분",
+"2회"
+]
+},
+"03_skills/DEVELOPMENT_SKILL_ROUTING_POLICY.md": {
+"REQ": [
+"REQ-SK-04",
+"REQ-SK-05"
+],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [
+"D1"
+],
+"R": [
+"R22",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P07"
+],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [],
+"U": [
+"U5"
+],
+"NUM": []
+},
+"03_skills/DEVELOPMENT_SKILL_USAGE_PLAN.md": {
+"REQ": [
+"REQ-DEV-01"
+],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P03",
+"P04",
+"P05",
+"P06",
+"P07",
+"P08a",
+"P08b",
+"P08c",
+"P09",
+"P10a",
+"P10b",
+"P11a",
+"P11b",
+"P11c",
+"P12"
+],
+"SPIKE": [
+"S2",
+"S6",
+"S7",
+"S8"
+],
+"EVENT": [
+"SkillSelected"
+],
+"ENUM": [
+"DISCOVERED",
+"INJECTION_ACCEPTED",
+"LOAD_OBSERVED"
+],
+"U": [
+"U5"
+],
+"NUM": []
+},
+"03_skills/SKILL_COMPATIBILITY_MATRIX.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P07"
+],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [
+"DETECTED",
+"ENFORCED",
+"POLICY_ONLY"
+],
+"U": [],
+"NUM": []
+},
+"03_skills/SKILL_CONFLICT_RESOLUTION.md": {
+"REQ": [],
+"AC": [],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [],
+"ADR": [],
+"PHASE": [
+"P00",
+"P07"
+],
+"SPIKE": [
+"S7"
+],
+"EVENT": [],
+"ENUM": [],
+"U": [
+"U5"
+],
+"NUM": [
+"3회"
+]
+},
+"03_skills/SKILL_EXECUTION_EVIDENCE_SPEC.md": {
+"REQ": [],
+"AC": [
+"AC-P10a-6"
+],
+"TEST": [],
+"CAP": [],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P00",
+"P07",
+"P10a"
+],
+"SPIKE": [
+"S7"
+],
+"EVENT": [
+"SkillLoadObserved",
+"SkillSelected"
+],
+"ENUM": [
+"APPLIED_VERIFIED",
+"DISCOVERED",
+"INJECTION_ACCEPTED",
+"LOAD_OBSERVED"
+],
+"U": [],
+"NUM": []
+},
+"04_security_test/EXECUTION_LIMITS_POLICY.md": {
+"REQ": [
+"REQ-CE-06",
+"REQ-LIM-01",
+"REQ-LIM-02",
+"REQ-LIM-03",
+"REQ-LIM-04",
+"REQ-OPS-02"
+],
+"AC": [],
+"TEST": [
+"LIM-01",
+"LIM-02",
+"LIM-03",
+"LIM-04",
+"RF-02",
+"TEST-AG-06",
+"TEST-AG-07",
+"TEST-BG-05",
+"TEST-CO-02",
+"TEST-LIM-01",
+"TEST-LIM-02",
+"TEST-LIM-04",
+"TEST-LIM-05",
+"TEST-SE-01a"
+],
+"CAP": [],
+"D": [],
+"R": [
+"R1",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P00",
+"P04"
+],
+"SPIKE": [],
+"EVENT": [
+"ApprovalDecided"
+],
+"ENUM": [],
+"U": [],
+"NUM": [
+"120분",
+"15분",
+"20분",
+"2회",
+"30분",
+"3회",
+"90/20"
+]
+},
+"04_security_test/RECOVERY_TEST_PLAN.md": {
+"REQ": [
+"REQ-CE-07",
+"REQ-GOAL-06",
+"REQ-REC-01",
+"REQ-SM-10"
+],
+"AC": [
+"AC-P01-2",
+"AC-P01-7",
+"AC-P02-1",
+"AC-P04-3",
+"AC-P05-2",
+"AC-P06-2",
+"AC-P10a-3",
+"AC-P10a-4"
+],
+"TEST": [
+"RC-01",
+"RC-02",
+"RC-03",
+"RC-04",
+"RC-05",
+"RC-06",
+"RC-07",
+"REC-01",
+"TEST-RC-02"
+],
+"CAP": [],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P01",
+"P02",
+"P04",
+"P05",
+"P06",
+"P10a"
+],
+"SPIKE": [],
+"EVENT": [],
+"ENUM": [
+"DISCOVERED"
+],
+"U": [],
+"NUM": [
+"15분",
+"3회"
+]
+},
+"04_security_test/SECURITY_MODEL.md": {
+"REQ": [
+"REQ-OPS-05",
+"REQ-PM-08",
+"REQ-SEC-01",
+"REQ-SEC-04",
+"REQ-SEC-05",
+"REQ-SK-07"
+],
+"AC": [
+"AC-P00-5"
+],
+"TEST": [
+"DT-08",
+"SE-01a",
+"SE-01b",
+"SE-02",
+"SE-06b",
+"SE-07",
+"SE-08",
+"SE-10",
+"TEST-RF-03",
+"TEST-SE-08",
+"TEST-SE-09"
+],
+"CAP": [
+"CAP-01",
+"CAP-02",
+"CAP-06",
+"CAP-07"
+],
+"D": [],
+"R": [
+"R1",
+"R19",
+"R20",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P04",
+"P05",
+"P07",
+"P08a",
+"P10a",
+"P10b",
+"P11a"
+],
+"SPIKE": [
+"S1c",
+"S4",
+"S6",
+"S9"
+],
+"EVENT": [
+"ApprovalDecided",
+"AuditSignal",
+"HookToggled",
+"InstructionFileChanged",
+"McpCallObserved",
+"ProcessObserved",
+"SettingsFileChanged",
+"ToolServerAction"
+],
+"ENUM": [
+"DETECTED",
+"ENFORCED",
+"POLICY_ONLY",
+"acceptEdits",
+"bypassPermissions",
+"dangerFullAccess",
+"dontAsk",
+"never",
+"on-request",
+"readOnly",
+"untrusted",
+"workspaceWrite"
+],
+"U": [
+"U8",
+"U9"
+],
+"NUM": [
+"15분"
+]
+},
+"04_security_test/TEST_STRATEGY.md": {
+"REQ": [
+"REQ-CAP-01",
+"REQ-DEV-02",
+"REQ-SK-06"
+],
+"AC": [
+"AC-P02-1",
+"AC-P02-2",
+"AC-P02-3",
+"AC-P04-2",
+"AC-P08a-1",
+"AC-P08b-2",
+"AC-P11a-3",
+"AC-V1-2"
+],
+"TEST": [
+"BG-01",
+"BG-06",
+"CO-01",
+"DT-01",
+"REC-03",
+"REC-04",
+"REC-05",
+"REC-07",
+"REC-08",
+"REC-11",
+"REC-14",
+"REC-15",
+"SE-01a",
+"SE-01a'",
+"SE-06b",
+"SE-08",
+"TEST-AG-01",
+"TEST-AG-02",
+"TEST-AG-03",
+"TEST-AG-04",
+"TEST-AG-05",
+"TEST-AG-06",
+"TEST-AG-07",
+"TEST-BG-01",
+"TEST-BG-02",
+"TEST-BG-03",
+"TEST-BG-04",
+"TEST-BG-05",
+"TEST-BG-06",
+"TEST-CO-01",
+"TEST-CO-02",
+"TEST-CO-03",
+"TEST-CO-04",
+"TEST-CO-05",
+"TEST-CO-06",
+"TEST-DT-01",
+"TEST-DT-02",
+"TEST-DT-03",
+"TEST-DT-04",
+"TEST-DT-05",
+"TEST-DT-06",
+"TEST-DT-07",
+"TEST-DT-08",
+"TEST-LIM-01",
+"TEST-LIM-02",
+"TEST-LIM-03",
+"TEST-LIM-04",
+"TEST-LIM-05",
+"TEST-RC-01",
+"TEST-RC-02",
+"TEST-RC-03",
+"TEST-RC-04",
+"TEST-RC-05",
+"TEST-RC-06",
+"TEST-RC-07",
+"TEST-RF-01",
+"TEST-RF-02",
+"TEST-RF-03",
+"TEST-RF-04",
+"TEST-RF-05",
+"TEST-SE-01a",
+"TEST-SE-01b",
+"TEST-SE-02",
+"TEST-SE-03",
+"TEST-SE-04",
+"TEST-SE-05",
+"TEST-SE-06a",
+"TEST-SE-06b",
+"TEST-SE-07",
+"TEST-SE-08",
+"TEST-SE-09",
+"TEST-SE-10"
+],
+"CAP": [
+"CAP-01",
+"CAP-02",
+"CAP-07"
+],
+"D": [],
+"R": [
+"R19",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [],
+"PHASE": [
+"P00",
+"P02",
+"P04",
+"P07",
+"P08a",
+"P08b",
+"P10b",
+"P11a"
+],
+"SPIKE": [
+"S3",
+"S4",
+"S5",
+"S7",
+"S9"
+],
+"EVENT": [
+"ApprovalDecided",
+"AuditSignal",
+"McpCallObserved",
+"SkillInjectionAccepted",
+"SkillLoadObserved",
+"SkillSelected"
+],
+"ENUM": [
+"APPLIED_VERIFIED",
+"DETECTED",
+"DISCOVERED",
+"ENFORCED",
+"POLICY_ONLY",
+"on-request",
+"readOnly",
+"workspaceWrite"
+],
+"U": [
+"U1",
+"U8"
+],
+"NUM": [
+"15분",
+"20분",
+"2회",
+"3회"
+]
+},
+"05_plan/ACCEPTANCE_CRITERIA.md": {
+"REQ": [],
+"AC": [
+"AC-P00-1",
+"AC-P00-2",
+"AC-P00-3",
+"AC-P00-4",
+"AC-P00-5",
+"AC-P00-6",
+"AC-P00-7a",
+"AC-P00-7b",
+"AC-P00-8",
+"AC-P00-9",
+"AC-P01-1",
+"AC-P01-2",
+"AC-P01-3",
+"AC-P01-4",
+"AC-P01-5",
+"AC-P01-6",
+"AC-P01-7",
+"AC-P02-1",
+"AC-P02-2",
+"AC-P02-3",
+"AC-P02-4",
+"AC-P02-5",
+"AC-P02-6",
+"AC-P03-1",
+"AC-P03-2",
+"AC-P03-3",
+"AC-P03-4",
+"AC-P04-1",
+"AC-P04-2",
+"AC-P04-3",
+"AC-P04-4",
+"AC-P05-1",
+"AC-P05-2",
+"AC-P05-3",
+"AC-P06-1",
+"AC-P06-2",
+"AC-P07-1",
+"AC-P07-2",
+"AC-P07-3",
+"AC-P07-4",
+"AC-P08a-1",
+"AC-P08a-2",
+"AC-P08b-1",
+"AC-P08b-2",
+"AC-P08b-3",
+"AC-P09-1",
+"AC-P09-2",
+"AC-P09-3",
+"AC-P09-4",
+"AC-P10a-1",
+"AC-P10a-2",
+"AC-P10a-3",
+"AC-P10a-4",
+"AC-P10a-5",
+"AC-P10a-6",
+"AC-P11a-1",
+"AC-P11a-2",
+"AC-P11a-3",
+"AC-V1-1",
+"AC-V1-10",
+"AC-V1-2",
+"AC-V1-3",
+"AC-V1-4",
+"AC-V1-5",
+"AC-V1-6",
+"AC-V1-7",
+"AC-V1-8",
+"AC-V1-9",
+"AC-V2-1",
+"AC-V2-2",
+"AC-V2-3",
+"AC-V2-4",
+"AC-V2-5",
+"AC-V2-6"
+],
+"TEST": [
+"AG-01",
+"AG-02",
+"BG-01",
+"CO-01",
+"CO-03",
+"CO-04",
+"CO-06",
+"DT-01",
+"DT-04",
+"DT-06",
+"DT-07",
+"DT-08",
+"LIM-01",
+"RC-01",
+"RC-07",
+"RF-01",
+"SE-01a",
+"SE-04",
+"SE-05",
+"SE-06a",
+"SE-06b",
+"SE-08",
+"TEST-BG-01",
+"TEST-BG-06",
+"TEST-LIM-01",
+"TEST-LIM-04",
+"TEST-LIM-05",
+"TEST-RF-01",
+"TEST-RF-02",
+"TEST-RF-03",
+"TEST-RF-04",
+"TEST-SE-09",
+"TEST-SE-10"
+],
+"CAP": [
+"CAP-01",
+"CAP-04",
+"CAP-05",
+"CAP-06",
+"CAP-07"
+],
+"D": [],
+"R": [
+"R4",
+"R6",
+"R9"
+],
+"ADR": [
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P03",
+"P04",
+"P05",
+"P06",
+"P07",
+"P08a",
+"P08b",
+"P08c",
+"P09",
+"P10a",
+"P10b",
+"P11a",
+"P11b",
+"P11c",
+"P12"
+],
+"SPIKE": [
+"S1a",
+"S1b",
+"S1c",
+"S2",
+"S3",
+"S4",
+"S5",
+"S6",
+"S7",
+"S8",
+"S9"
+],
+"EVENT": [
+"AuditSignal",
+"SkillInjectionAccepted",
+"SkillSelected",
+"ToolServerAction"
+],
+"ENUM": [
+"DETECTED",
+"ENFORCED",
+"acceptEdits",
+"bypassPermissions",
+"conditional",
+"dangerFullAccess",
+"dontAsk",
+"never",
+"on-request",
+"readOnly",
+"supported",
+"unsupported",
+"untrusted",
+"workspaceWrite"
+],
+"U": [
+"U8"
+],
+"NUM": [
+"120분",
+"15분",
+"20분",
+"2회",
+"3회"
+]
+},
+"05_plan/IMPLEMENTATION_APPROVAL_CHECKLIST.md": {
+"REQ": [
+"REQ-CAP-01"
+],
+"AC": [
+"AC-P00-7b",
+"AC-P01-6",
+"AC-V1-8"
+],
+"TEST": [],
+"CAP": [
+"CAP-01"
+],
+"D": [
+"D1",
+"D2",
+"D28",
+"D3",
+"D4",
+"D5",
+"D6"
+],
+"R": [
+"R10",
+"R20",
+"R21",
+"R22",
+"R9"
+],
+"ADR": [
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P01"
+],
+"SPIKE": [
+"S1a",
+"S2",
+"S4",
+"S5",
+"S6",
+"S7",
+"S9"
+],
+"EVENT": [],
+"ENUM": [
+"on-request"
+],
+"U": [
+"U1",
+"U2",
+"U3",
+"U4",
+"U5",
+"U6",
+"U7",
+"U8",
+"U9"
+],
+"NUM": []
+},
+"05_plan/MASTER_IMPLEMENTATION_PLAN.md": {
+"REQ": [
+"REQ-CAP-01",
+"REQ-CAP-08",
+"REQ-OPS-06",
+"REQ-PH-07",
+"REQ-PM-03"
+],
+"AC": [
+"AC-P00-1",
+"AC-P00-6",
+"AC-P00-7b",
+"AC-P02-1",
+"AC-P02-2",
+"AC-P04-2",
+"AC-P08a-1",
+"AC-P08b-2",
+"AC-P10a-6",
+"AC-P11a-3",
+"AC-V1-2",
+"AC-V1-8"
+],
+"TEST": [
+"SE-01a",
+"TEST-BG-01",
+"TEST-BG-06",
+"TEST-RF-01",
+"TEST-RF-02",
+"TEST-RF-03",
+"TEST-RF-04",
+"TEST-RF-05"
+],
+"CAP": [
+"CAP-01",
+"CAP-08",
+"CAP-09"
+],
+"D": [
+"D26",
+"D5"
+],
+"R": [
+"R10",
+"R21",
+"R4",
+"R6",
+"R9"
+],
+"ADR": [
+"ADR-0001",
+"ADR-0005",
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P03",
+"P04",
+"P05",
+"P06",
+"P07",
+"P08a",
+"P08b",
+"P08c",
+"P09",
+"P10a",
+"P10b",
+"P11a",
+"P11b",
+"P11c",
+"P12"
+],
+"SPIKE": [
+"S1a",
+"S1b",
+"S1c",
+"S2",
+"S3",
+"S4",
+"S5",
+"S6",
+"S7",
+"S8",
+"S9"
+],
+"EVENT": [
+"SkillSelected"
+],
+"ENUM": [
+"APPLIED_VERIFIED",
+"DISCOVERED",
+"INJECTION_ACCEPTED",
+"LOAD_OBSERVED",
+"acceptEdits",
+"bypassPermissions",
+"conditional",
+"dangerFullAccess",
+"dontAsk",
+"granular",
+"never",
+"on-request",
+"readOnly",
+"supported",
+"unsupported",
+"untrusted",
+"workspaceWrite"
+],
+"U": [
+"U1",
+"U5",
+"U8",
+"U9"
+],
+"NUM": [
+"120분",
+"15분",
+"1주",
+"20분",
+"2회",
+"3회"
+]
+},
+"05_plan/OPEN_ISSUES_AND_RISKS.md": {
+"REQ": [],
+"AC": [],
+"TEST": [
+"SE-06b",
+"SE-08",
+"SE-09",
+"SE-10",
+"TEST-SE-09"
+],
+"CAP": [
+"CAP-03",
+"CAP-04",
+"CAP-05",
+"CAP-09"
+],
+"D": [
+"D11",
+"D14",
+"D20"
+],
+"R": [
+"R1",
+"R10",
+"R11",
+"R12",
+"R13",
+"R14",
+"R15",
+"R16",
+"R17",
+"R18",
+"R19",
+"R2",
+"R20",
+"R21",
+"R22",
+"R3",
+"R4",
+"R5",
+"R6",
+"R7",
+"R8",
+"R9"
+],
+"ADR": [
+"ADR-0001",
+"ADR-0006",
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P07",
+"P10a",
+"P10b"
+],
+"SPIKE": [
+"S1a",
+"S1c",
+"S2",
+"S3",
+"S4",
+"S5",
+"S7",
+"S9"
+],
+"EVENT": [],
+"ENUM": [
+"APPLIED_VERIFIED",
+"DETECTED",
+"DISCOVERED",
+"ENFORCED",
+"INJECTION_ACCEPTED",
+"LOAD_OBSERVED",
+"POLICY_ONLY",
+"acceptEdits",
+"bypassPermissions",
+"conditional",
+"dontAsk",
+"on-request",
+"supported",
+"untrusted",
+"workspaceWrite"
+],
+"U": [
+"U1",
+"U2",
+"U3",
+"U4",
+"U5",
+"U6",
+"U7",
+"U8",
+"U9"
+],
+"NUM": [
+"15분"
+]
+},
+"05_plan/PHASE_BREAKDOWN.md": {
+"REQ": [
+"REQ-CAP-01",
+"REQ-CAP-08",
+"REQ-PH-07",
+"REQ-SK-09",
+"REQ-WS-03"
+],
+"AC": [
+"AC-P00-1",
+"AC-P00-7b",
+"AC-P00-9",
+"AC-P01-6",
+"AC-P08b-1",
+"AC-P08b-2",
+"AC-P08b-3",
+"AC-P09-1",
+"AC-P09-4",
+"AC-P10a-6",
+"AC-V1-2",
+"AC-V2-1",
+"AC-V2-2",
+"AC-V2-4"
+],
+"TEST": [
+"AG-01",
+"AG-03",
+"AG-05",
+"BG-01",
+"BG-06",
+"CO-01",
+"CO-06",
+"DT-01",
+"DT-02",
+"DT-04",
+"DT-06",
+"DT-07",
+"DT-08",
+"LIM-01",
+"RC-01",
+"RC-02",
+"RC-07",
+"REC-01",
+"REC-03",
+"REC-04",
+"REC-13",
+"REC-15",
+"SE-01a",
+"SE-02",
+"SE-05",
+"SE-06a",
+"TEST-BG-01",
+"TEST-BG-06",
+"TEST-RF-03",
+"TEST-RF-04"
+],
+"CAP": [
+"CAP-01",
+"CAP-05",
+"CAP-08",
+"CAP-09"
+],
+"D": [
+"D21",
+"D22",
+"D7"
+],
+"R": [
+"R1",
+"R19",
+"R20",
+"R22",
+"R4",
+"R6",
+"R7",
+"R8",
+"R9"
+],
+"ADR": [
+"ADR-0003",
+"ADR-0005",
+"ADR-0007"
+],
+"PHASE": [
+"P00",
+"P01",
+"P02",
+"P03",
+"P04",
+"P05",
+"P06",
+"P07",
+"P08a",
+"P08b",
+"P08c",
+"P09",
+"P10a",
+"P10b",
+"P11a",
+"P11b",
+"P11c",
+"P12"
+],
+"SPIKE": [
+"S1a",
+"S1b",
+"S1c",
+"S2",
+"S3",
+"S4",
+"S5",
+"S6",
+"S7",
+"S8",
+"S9"
+],
+"EVENT": [
+"SkillInjectionAccepted",
+"SkillLoadObserved",
+"SkillSelected",
+"user_input_requested"
+],
+"ENUM": [
+"APPLIED_VERIFIED",
+"DISCOVERED",
+"INJECTION_ACCEPTED",
+"LOAD_OBSERVED",
+"acceptEdits",
+"conditional",
+"on-request",
+"readOnly",
+"supported",
+"unsupported",
+"workspaceWrite"
+],
+"U": [
+"U1",
+"U5",
+"U8",
+"U9"
+],
+"NUM": [
+"15분",
+"1주",
+"2주",
+"90/20"
+]
+}
+}

@@ -1,0 +1,49 @@
+{
+ "round": "R6_rereview_2",
+ "call_no": 11,
+ "started_at": "2026-11-01T13:26:35Z",
+ "finished_at": "2026-11-01T13:35:28Z",
+ "exit_code": 0,
+ "thread_id": "<thread-id>",
+ "session": "B2 (resume of R4_review_2)",
+ "response_bytes": 22049,
+ "usage_cumulative_thread": {
+  "input_tokens": 8995707,
+  "cached_input_tokens": 8664064,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 34572,
+  "reasoning_output_tokens": 8649
+ },
+ "topic": "에이전트·상태·복구·협업·스킬",
+ "original_findings_verdicts": {
+  "RESOLVED": 12,
+  "PARTIALLY_RESOLVED": 11,
+  "NOT_RESOLVED": 1,
+  "RESOLVED_BUT_NEW_ISSUE": 1
+ },
+ "new_findings": {
+  "total": 15,
+  "by_severity": {
+   "High": 6,
+   "Medium": 8,
+   "Critical": 1
+  },
+  "ids": {
+   "R6B-02": "High",
+   "R6B-03": "Medium",
+   "R6B-04": "Medium",
+   "R6B-05": "Medium",
+   "R6B-06": "Medium",
+   "R6B-09": "High",
+   "R6B-10": "Critical",
+   "R6B-11": "High",
+   "R6B-12": "High",
+   "R6B-13": "High",
+   "R6B-14": "Medium",
+   "R6B-15": "Medium",
+   "R6B-16": "Medium",
+   "R6B-17": "Medium",
+   "R6B-18": "High"
+  }
+ }
+}

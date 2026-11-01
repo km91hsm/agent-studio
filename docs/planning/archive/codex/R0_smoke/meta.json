@@ -1,0 +1,16 @@
+{
+  "round": "R0_smoke",
+  "call_no": 1,
+  "started_at": "2026-11-01T11:30:17Z",
+  "finished_at": "2026-11-01T11:30:31Z",
+  "command": "codex exec -s read-only -C D:/LLM --skip-git-repo-check --ephemeral -c model_reasoning_effort=\"high\" --json -o response.md -",
+  "codex_version": "codex-cli 0.166.0",
+  "thread_id": "<thread-id>",
+  "ephemeral": true,
+  "exit_code": 0,
+  "model_reported": "gpt-6",
+  "effort_reported": "UNKNOWN",
+  "usage": {"input_tokens": 41689, "cached_input_tokens": 29056, "output_tokens": 167, "reasoning_output_tokens": 58},
+  "file_read_test": "SOURCES_LINES=15 (correct: 15 non-empty lines)",
+  "notes": "read-only sandbox allowed reading D:\LLM\claude-skills\SOURCES.md via pwsh. stderr contained a non-fatal MCP 403 (Cloudflare challenge) from a ChatGPT-linked MCP server; did not affect the run."
+}

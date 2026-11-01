@@ -1,0 +1,65 @@
+### 요약
+
+**원 지적 19건: 해결 13 / 부분 해결 6 / 미해결 0. 신규 문제 9건.** 잔존 **High 있음**, Critical은 이번 범위에서 새로 확정하지 않았다. 특히 `MVP-Core` 표기, Renderer 접속 경계, Gateway 서명이 아직 문서 전체에서 일치하지 않는다. 2차 요청의 기능 상속은 유용한 조사 방향이지만, 일부 CAP 행은 헤드리스에서의 *발견*을 *실행 가능*으로 앞서 표기했다. 아래 판정은 현재 디스크의 문구를 기준으로 한다.
+
+### 원 지적 재검토
+
+| 원 ID | 판정(RESOLVED/PARTIALLY_RESOLVED/NOT_RESOLVED/RESOLVED_BUT_NEW_ISSUE) | 현재 문서·위치 | 근거 인용 | 잔여 조치 |
+|---|---|---|---|---|
+| R4A-01 | RESOLVED | [TECH_STACK_DECISIONS §1·2](D:/LLM/agent-studio/docs/planning/01_architecture/TECH_STACK_DECISIONS.md:22) | “**Anthropic Commercial Terms** … MIT 아님”, “공개 배포 전 … 조건 확인 게이트”. [SDK LICENSE](https://github.com/anthropics/claude-agent-sdk-typescript/blob/main/LICENSE.md)와 일치한다. | 배포 조건의 실제 판정은 U1·ADR-0007에서 수행. |
+| R4A-02 | PARTIALLY_RESOLVED | [PRODUCT_REQUIREMENTS 범례·SK 표](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:11), [PHASE_BREAKDOWN P01](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:66) | 범례는 `MVP-Core`를 정의했으나 **41개 REQ 행**에 여전히 plain `MVP`가 남는다. `REQ-SK-01`의 “Registry 스캔·해시만, P01 T3”도 P01 T3의 실제 작업인 “Journal … 스킬 관찰 이벤트 타입”과 다르다. | 41행을 Core/V1 기준으로 정규화하고 SK-01의 실제 구현 Phase를 맞출 것. |
+| R4A-03 | RESOLVED | [UI §1](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:13), [PRODUCT REQ-UI-01](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:197) | “공급자별 인증 상태”, “API key면 키 입력 경로”, “인증이 준비된 공급자만 … 즉시 대화”. | U1 결정 뒤 기본 흐름 확정. |
+| R4A-04 | RESOLVED | [SYSTEM_ARCHITECTURE §1·2](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:52), [P08a T1](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:84) | “Git 읽기 … 데몬 소유 `GitReadService`”, T1에 snapshot·diff·충돌 마커·blob 해시가 있다. | 구현 시 Shell 부재 시험. |
+| R4A-05 | PARTIALLY_RESOLVED | [SYSTEM_ARCHITECTURE RPC 계약](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:54)·[§4](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:89) | 계약은 **main 발급 중계, 10분, 읽기·구독 한정, 쓰기는 main 경유, 재연결 시 재발급**을 정의했다. 그러나 §4는 아직 “Renderer ↔ 데몬 \| localhost WS, **1회성 토큰(키링)**”이라 주 토큰을 Renderer가 가진다는 해석을 남긴다. §3도 “Renderer → RPC `task.submit`”으로 쓰기 경유를 생략한다. | §3·§4를 계약과 동일하게 수정. CSP 문제는 R6A-08 참조. |
+| R4A-06 | RESOLVED | [TECH_STACK §1·2](D:/LLM/agent-studio/docs/planning/01_architecture/TECH_STACK_DECISIONS.md:20) | “node-pty는 Windows C++ 컴파일러·SDK 전제”, “PATH에 `cl`·`msbuild` 없음”, S6 확인으로 바뀌었다. [node-pty README](https://github.com/microsoft/node-pty/blob/main/README.md)의 빌드 전제와 맞는다. | 툴체인 실재·prebuilt 로드는 P00에서 확인. |
+| R4A-07 | RESOLVED | [PRODUCT MODE 표](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:29) | Claude “디버깅 및 테스트”, Codex “코드 작성·수정·테스트 및 코드 리뷰”, Auto “요구사항 분석·설계 및 구현 계획”이 명시됐다. | 없음. |
+| R4A-08 | RESOLVED | [PRODUCT REC·DEV·UI 표](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:152) | `REQ-REC-01`~`14`가 개별 행이고 UI에는 “릴리스·Phase”, DEV에는 “공통 게이트” 적용 열이 있다. | 릴리스 명칭의 전체 정규화는 R4A-02에 남음. |
+| R4A-09 | PARTIALLY_RESOLVED | [PRODUCT REQ-WS-03](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:103), [P03 T7](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:78) | 형식·전달·저장 위치는 적혔다. 하지만 T7은 MVP-Core 이전 P03 안에서 “**V1 이월**”이라고만 하며, V1 Phase의 Task로 다시 배정되지 않았다. | P08b 또는 다른 V1 Phase에 T7의 소유·AC를 명시. |
+| R4A-10 | PARTIALLY_RESOLVED | [SYSTEM §2](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:60), [AGENT_INTEGRATION §1](D:/LLM/agent-studio/docs/planning/02_agents_state/AGENT_INTEGRATION_DESIGN.md:12) | `capabilities`, `startRun`, `listSessions`, `readSession`, `runId`, `sessionRef`, `events`, `steer`, `interrupt`, `close`는 대응한다. **시스템의 `respond(requestId, answer)`와 통합 설계의 `respondApproval(requestId, decision)`는 다르다.** `RunSpec`도 시스템 표에는 일부 필드만 축약돼 있다. | 응답 메서드 이름·인자 타입을 단일 서명으로 맞추고 두 문서가 그 서명만 인용. |
+| R4A-11 | RESOLVED | [SYSTEM §1](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:52), [UI §3.2](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:42) | 터미널 변경은 `actor=unknown`; UI는 “관찰된 Diff / 실행과 연결됨 / 작성자 불명”을 표시한다. | 없음. |
+| R4A-12 | RESOLVED | [PRODUCT REQ-WS-05](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:105), [UI Diff 행](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:44) | MVP-Core “Diff 보기 + 턴 단위 전체 되돌리기”, V1 “파일 선별”; 결과 수락과 실행 승인을 구분했다. P08a T4·P08b T5에도 배정됐다. | 없음. |
+| R4A-13 | RESOLVED | [UI 미리보기 행](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:47), [P08c](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:111) | `<webview>` 고정을 철회하고 `WebContentsView`/외부 브라우저를 V2 ADR에서 결정한다. 이는 [Electron의 `<webview>` 비권장 안내](https://www.electronjs.org/docs/latest/api/webview-tag)에 맞는다. | 없음. |
+| R4A-14 | PARTIALLY_RESOLVED | [P08a T2](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:84), [SECURITY_MODEL §7](D:/LLM/agent-studio/docs/planning/04_security_test/SECURITY_MODEL.md:114) | P08a는 `app://`·`getWorker`·`script-src 'self' app:`·`worker-src app:`을 지정한다. 보안 문서의 정식 CSP는 `script-src 'self'; worker-src 'self'; connect-src 'none'`이다. 같은 `app://` origin이면 `'self'`로 worker가 허용될 수 있으나 host·URL 계약이 없어 **UNVERIFIED**다. `webviewTag:false`는 `WebContentsView` 선택과 충돌하지 않는다. | CSP를 한 곳에서 정의하고 같은 origin의 설치물 worker 시험을 AC로 연결. |
+| R4A-15 | RESOLVED | [ARCHITECTURE_COMPARISON E3](D:/LLM/agent-studio/docs/planning/01_architecture/ARCHITECTURE_COMPARISON.md:81) | 동봉 Node와 `runAsNode`를 각각 시험하고 “`electron-rebuild`는 `runAsNode` 경로에만 적용”이라고 고쳤다. | 실제 재빌드 필요성은 P00 결과로 판정. |
+| R4A-16 | RESOLVED | [SYSTEM §5](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:102), [P11b T10](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:105) | macOS·Linux 설치물에서 창·앱 종료, 재접속, 자손 정리를 `TEST-BG-06~10`으로 반복한다. | 없음. |
+| R4A-17 | RESOLVED | [ARCHITECTURE_COMPARISON §1·3](D:/LLM/agent-studio/docs/planning/01_architecture/ARCHITECTURE_COMPARISON.md:18) | “B1 … B2 … 분리해 읽어야 한다”, “점수 합계만으로 영향 없음을 주장하지 않는다”로 바뀌었다. 표 머리도 B1/B2를 표시한다. | 없음. |
+| R4A-18 | PARTIALLY_RESOLVED | [UI §3.2a](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:50) | 7개 화면의 릴리스 표는 생겼다. 다만 Skills & MCP의 V1은 “**전부**”인데 같은 행 V2가 “업데이트·롤백”이고, Project Planning V2 “재계획 Diff”의 구현 Task도 불명확하다. | “전부”를 V1 범위로 한정하고 V2 기능에 Task를 연결. |
+| R4A-19 | RESOLVED | [TECH_STACK §2.1](D:/LLM/agent-studio/docs/planning/01_architecture/TECH_STACK_DECISIONS.md:52) | Monaco·node-pty·keyring·테스트·배포·서명마다 대안, 기각 이유, 되돌릴 조건이 생겼다. | 없음. |
+
+**Plain `MVP` 잔존 41개:** `REQ-GOAL-01·02·03·05·06`; `REQ-SM-01·02·03·05·06·07·10·11·13`; `REQ-CE-06·07·08·10·11`; `REQ-WS-01·02·09·13`; `REQ-OPS-01·03·04·05`; `REQ-STATE-01~04`; `REQ-REC-15`; `REQ-SEC-01·02·03·05·06`; `REQ-LIM-01~04`. `REQ-GOAL-01`과 `REQ-SEC-02`는 V1을 함께 쓰지만 첫 단계가 여전히 plain `MVP`다. 중복된 REQ-ID는 발견되지 않았다.
+
+### 2차 요청 변경 평가 (REQ-CAP·D11·D19·D26)
+
+| ID | 심각도 | 문서·위치 | 문제 | 근거 | 권고 |
+|---|---|---|---|---|---|
+| R6A-01 | Low | [PRODUCT §13A](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:212) | **문제 없음 — CAP-01의 대체 경로 표기.** | Claude `plan`과 Codex `readOnly`+`on-request`를 각각 적어 동일 API라고 주장하지 않는다. | P00에서 실제 쓰기 차단과 UI 명칭만 확인. |
+| R6A-02 | High | [FINAL D11](D:/LLM/agent-studio/docs/planning/01_architecture/FINAL_ARCHITECTURE_DECISIONS.md:23), [AGENT_INTEGRATION 권한 행](D:/LLM/agent-studio/docs/planning/02_agents_state/AGENT_INTEGRATION_DESIGN.md:54), [UI §7](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:108) | “런타임 전 모드 노출”과 실제 선택지·경고가 다르다. | Claude 목록은 `plan/default/acceptEdits/auto/bypassPermissions`로, [공식 SDK 변경 기록](https://github.com/anthropics/claude-agent-sdk-typescript/blob/main/CHANGELOG.md)에 등장하는 `dontAsk`가 빠졌다. UI 경고는 파일 변경만 말하며 원격 명령·전송의 사전 승인 보장 감소를 설명하지 않는다. PRODUCT/UI에 옛 “자동 모드 금지” 문장은 찾지 못했으나 통합 설계의 고정 `turn/start{approvalPolicy:"on-request"}`와 P02의 “샌드박스 옵션 고정”은 모드 선택 반영 방법을 흐린다. | 지원 모드별 동작·보장 수준을 capability 기반으로 표시하고, 프로젝트 옵트인 화면에 감소하는 보장을 구체적으로 적을 것. |
+| R6A-03 | High | [PRODUCT CAP-03~07](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:214), [P00 S9](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:62) | 1단 기능 상속의 표시가 검증 범위를 앞선다. | CAP-03은 PDF·이미지 읽기를 `MVP-Core` 1단으로, CAP-04·06은 Desktop 번들 기능을 1단으로 제시한다. S9는 주로 `skills/list` 노출·기동 여부를 본다. **목록 발견은 헤드리스 호출·결과 생성의 증거가 아니다.** [OpenAI 플러그인 공식 설명](https://developers.openai.com/plugins/concepts/plugins)는 기능이 surface별로 다를 수 있다고 명시한다. CAP-04·05에는 UNVERIFIED가 있으나 CAP-03 Codex와 CAP-06 Codex 행에는 부족하다. | 각 CAP를 `발견/기동/실제 작업/산출물`로 시험하고 그 전에는 경로를 조건부·UNVERIFIED로 표시. |
+| R6A-04 | High | [FINAL D26](D:/LLM/agent-studio/docs/planning/01_architecture/FINAL_ARCHITECTURE_DECISIONS.md:38), [PRODUCT §13A](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:208) | “어떤 기능도 불가능으로 닫지 않음”은 설계 원칙을 능력 보증처럼 만든다. | CAP-05 이미지 생성은 공급자 API·인증이 필요하고, CAP-07 컴퓨터 사용의 2단 OS 입력 제어는 P00 S9가 검증하지 않는다. 3단 LLM 스크립트도 라이브러리·OS 권한·서비스가 없으면 대체할 수 없다. | `supported/conditional/unsupported` 판정을 허용하고, 2단 도구 서버 자체의 OS별 실행 시험을 별도 게이트로 둬라. |
+| R6A-05 | High | [FINAL D19](D:/LLM/agent-studio/docs/planning/01_architecture/FINAL_ARCHITECTURE_DECISIONS.md:31), [OPEN_ISSUES R18](D:/LLM/agent-studio/docs/planning/05_plan/OPEN_ISSUES_AND_RISKS.md:50) | 공유 `CODEX_HOME`의 설정 변동·플러그인 hook 영향이 R18에 잡히지 않았다. | R18은 “Desktop 전용 기능 소실”만 다룬다. 공유 홈은 사용자 설정·MCP·플러그인 변경을 데몬 실행에도 반영할 수 있다. [OpenAI 플러그인 문서](https://developers.openai.com/plugins/build/plugins)는 사용자·프로젝트 설정 우선순위와 플러그인 lifecycle hook을 설명한다. 현재 문서는 `config.toml` 미수정만 보장한다. | 시작 시 유효 설정·플러그인·hook의 스냅숏과 변경 감지, 실행별 출처 표시, 격리 프로필 전환 조건을 위험표와 UI에 추가. |
+
+### 신규 발견 (수정으로 생긴 불일치)
+
+| ID | 심각도 | 문서·위치 | 문제 | 근거 | 권고 |
+|---|---|---|---|---|---|
+| R6A-06 | High | [PHASE P00](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:51), [AC-P00-2](D:/LLM/agent-studio/docs/planning/05_plan/ACCEPTANCE_CRITERIA.md:15), [AGENT_INTEGRATION §6](D:/LLM/agent-studio/docs/planning/02_agents_state/AGENT_INTEGRATION_DESIGN.md:111) | S1b/S1c의 시험 소유가 뒤바뀌었다. | Phase는 **S1b=steer·interrupt·resume·fork**, **S1c=자동 쓰기·승인 보류**다. AC와 통합 설계는 **S1b=자동 쓰기**, **S1c=steer·fork**라고 적는다. | Phase·MASTER·AC·통합 설계의 S1a/b/c 범위를 하나로 통일. |
+| R6A-07 | Medium | [PHASE P09·DAG](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:96) | `P09 T5b`는 참조되지만 정의된 Task가 없다. P06·P07의 선행 조건도 “MVP”로 남았다. | P09 Task 목록은 T1~T6이며 DAG는 “P10b T1 → **P09 T5b**”를 요구한다. P06·P07 §4는 “선행: **MVP**”다. | T5b를 실제 V1 Task·AC로 정의하고 선행을 `MVP-Core`로 고쳐라. |
+| R6A-08 | High | [SYSTEM RPC 계약](D:/LLM/agent-studio/docs/planning/01_architecture/SYSTEM_ARCHITECTURE.md:54), [SECURITY_MODEL §7](D:/LLM/agent-studio/docs/planning/04_security_test/SECURITY_MODEL.md:114), [MASTER Constraints](D:/LLM/agent-studio/docs/planning/05_plan/MASTER_IMPLEMENTATION_PLAN.md:23) | Renderer의 구독 전용 **직접 WebSocket**과 전역 `connect-src 'none'`가 충돌한다. | [CSP `connect-src` 명세](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/connect-src)는 WebSocket을 통제한다. `webviewTag:false`는 문제없고, [Electron custom protocol](https://www.electronjs.org/docs/latest/api/protocol/)의 `standard`·`secure` 설정도 방향은 맞다. | Renderer WS를 유지한다면 정확한 loopback `ws:` 대상만 CSP에 허용하거나, 구독까지 main 프록시로 옮겨 `connect-src 'none'`을 유지. |
+| R6A-09 | Medium | [P08b AC](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:99), [AC-P08b-1](D:/LLM/agent-studio/docs/planning/05_plan/ACCEPTANCE_CRITERIA.md:84) | AC-ID는 존재하지만 참조한 판정 내용이 다르다. | Phase는 “`AC-P08b-1`(**해시 불일치 Save 거부**)”라고 하고 실제 AC는 “편집·저장 `actor=user` 저널, 에이전트가 PTY에 접근 불가”다. 검색한 **명시적 AC-ID는 모두 존재**했으나 이 의미 불일치는 남는다. | 해시 충돌 거부를 AC에 추가하거나 별도 ID를 만들고 Phase 참조를 교정. |
+| R6A-10 | Medium | [PRODUCT CAP-06·PH-07·SK-09](D:/LLM/agent-studio/docs/planning/00_product/PRODUCT_REQUIREMENTS.md:216), [UI §3.2a](D:/LLM/agent-studio/docs/planning/00_product/UI_UX_SPECIFICATION.md:56), [PHASE P12·P08c](D:/LLM/agent-studio/docs/planning/05_plan/PHASE_BREAKDOWN.md:108) | 릴리스와 Task가 엇갈린다. | CAP-06은 **V1**인데 P08c가 이를 V2 REQ로 다시 소유한다. `PH-07`·`SK-09`는 **V2**로 P12 REQ에만 있고, P12 T1~T3에는 변경 영향 분석·재계획 및 스킬 업데이트·롤백 Task가 없다. UI는 Project Planning “V2 재계획 Diff”를 약속한다. | CAP-06의 V1 자동화 연계와 V2 미리보기를 분리하고, PH-07·SK-09에 V2 Task·AC를 배정. |
+
+### 사용자 결정 대기로 표시할 항목
+
+- **U1 (High):** 공급자별 기본 인증 방식. 첫 실행 UX와 Claude SDK 배포 조건의 실제 판정에 필요하다.
+- **U8 (High):** 자동 권한 모드의 제품 허용 범위. 문서의 경고·보장 수준을 먼저 고친 뒤 선택지를 제시해야 한다.
+- **U9 (High):** 공유 `CODEX_HOME` 기본값 여부. R6A-05의 설정·hook 변동 위험과 격리 옵션을 반영한 선택이 필요하다.
+
+R4A-02·05 및 R6A-06·08 같은 **문서 간 불일치는 사용자 결정을 기다릴 사안이 아니다.** 작성자가 우선 수정할 수 있다.
+
+### UNVERIFIED
+
+- 헤드리스 `codex app-server`에서 Desktop 번들 플러그인이 목록에 보이는 수준을 넘어 실제 호출·산출까지 작동하는지.
+- 현재 설치된 Claude SDK 0.3.316에서 `auto`를 포함한 모드 전환, synced 스킬 및 `--chrome` 상당 경로가 실제 작동하는지.
+- CAP-07·08의 화면 입력·브라우저 연계가 3 OS에서 앱 MCP 도구 서버로 구현·승인·복구 가능한지.
+- `app://`의 최종 host와 Monaco worker URL이 동일 origin으로 묶이고, 설치물의 정식 CSP에서 worker가 로드되는지.
+- 공유 `CODEX_HOME`의 사용자 설정·플러그인 변경이 진행 중 데몬 run에 어느 시점부터 반영되는지.

@@ -1,0 +1,16 @@
+{
+  "call": "C4_independent_verify",
+  "purpose": "정리본 독립 최종 검증 — 인벤토리 1,356항목 대조·교차 참조·이력 잔존·단일 출처·P00~P01 실행 가능성",
+  "session": "E (new)",
+  "thread_id": "<thread-id>",
+  "model": "gpt-6-sol (config.toml)",
+  "reasoning_effort": "high",
+  "sandbox": "read-only",
+  "started_at": "2026-11-01T17:04:23Z",
+  "finished_at": "2026-11-01T17:11:38Z",
+  "exit_code": 0,
+  "response_bytes": 10778,
+  "usage": {"input_tokens": 3204602, "cached_input_tokens": 3087744, "output_tokens": 18879, "reasoning_output_tokens": 8101},
+  "verdict": "수정 후 수용 — 결정 손실 0, 지적 14(B5 High, C3 Medium, D 2 Critical+1 Medium, E 2 Critical+1 Medium)",
+  "budget": "정리 예산 4/6"
+}

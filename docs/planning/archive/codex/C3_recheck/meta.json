@@ -1,0 +1,17 @@
+{
+  "call": "C3_recheck",
+  "purpose": "C2 지적 33건 반영 결과 재확인(작업 트리 vs 402a5c0)",
+  "session": "D (resume)",
+  "thread_id": "<thread-id>",
+  "model": "gpt-6-sol (config.toml)",
+  "reasoning_effort": "high",
+  "sandbox": "read-only (세션 상속)",
+  "started_at": "2026-11-01T16:53:47Z",
+  "finished_at": "2026-11-01T16:59:25Z",
+  "exit_code": 0,
+  "response_bytes": 10647,
+  "usage_cumulative_thread": {"input_tokens": 10060730, "cached_input_tokens": 9637760, "output_tokens": 58953, "reasoning_output_tokens": 24892},
+  "usage_increment_est": {"input_tokens": 2544234, "cached_input_tokens": 2476544, "output_tokens": 15815, "reasoning_output_tokens": 9731},
+  "verdict": "해소 23 / 부분 9 / 미해소 0 / 새 문제 1(E7) + 새 지적 N1~N4; C4는 수정 후 가능",
+  "budget": "정리 예산 3/6"
+}

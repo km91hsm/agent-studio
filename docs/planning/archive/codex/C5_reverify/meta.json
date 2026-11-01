@@ -1,0 +1,17 @@
+{
+  "call": "C5_reverify",
+  "purpose": "C4 지적 14건 반영 재검증",
+  "session": "E (resume)",
+  "thread_id": "<thread-id>",
+  "model": "gpt-6-sol (config.toml)",
+  "reasoning_effort": "high",
+  "sandbox": "read-only (세션 상속)",
+  "started_at": "2026-11-01T17:15:03Z",
+  "finished_at": "2026-11-01T17:18:50Z",
+  "exit_code": 0,
+  "response_bytes": 6515,
+  "usage_cumulative_thread": {"input_tokens": 4487067, "cached_input_tokens": 4339456, "output_tokens": 28838, "reasoning_output_tokens": 13754},
+  "usage_increment_est": {"input_tokens": 1282465, "cached_input_tokens": 1251712, "output_tokens": 9959, "reasoning_output_tokens": 5653},
+  "verdict": "수정 후 수용 — 해소 11 / 부분 3(C1·C2·E3) / 새 지적 N1~N7(S0 정합성·R22·U10 표기·새 파일 커밋)",
+  "budget": "정리 예산 5/6"
+}

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "lib": ["ES2023"]
+  },
+  "include": ["spikes/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "spikes/fixtures/**", "spikes/s6-installer/**"]
+}

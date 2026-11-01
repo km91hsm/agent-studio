@@ -1,0 +1,36 @@
+{
+ "round": "R7_reverify_1",
+ "call_no": 13,
+ "session": "B4 신규(독립 세션)",
+ "thread_id": "<thread-id>",
+ "started_at": "2026-11-01T13:58:21Z",
+ "finished_at": "2026-11-01T14:07:02Z",
+ "exit_code": 0,
+ "response_bytes": 29639,
+ "usage": {
+  "input_tokens": 5303602,
+  "cached_input_tokens": 5146112,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 25362,
+  "reasoning_output_tokens": 9078
+ },
+ "verdicts": {
+  "INSUFFICIENT": 43,
+  "VERIFIED": 29
+ },
+ "new_findings": {
+  "R7-01": "High",
+  "R7-02": "High",
+  "R7-03": "High",
+  "R7-04": "High",
+  "R7-05": "High",
+  "R7-06": "High",
+  "R7-07": "High",
+  "R7-08": "Medium",
+  "R7-09": "Medium",
+  "R7-10": "High",
+  "R7-11": "High",
+  "R7-12": "High"
+ },
+ "claude_note": "Codex는 v2 approvalPolicy 값을 UNVERIFIED로 남겼고, Claude가 generate-json-schema(scratchpad 출력)로 확인: untrusted/on-request/never/granular — evidence/codex_0.166.0_v2_schema_excerpt.json"
+}

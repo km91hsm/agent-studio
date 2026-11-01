@@ -1,0 +1,15 @@
+{
+  "call": "C1_cleanup_criteria",
+  "purpose": "정리 기준 토론 + 문서별 삭제·축약·단일 출처 제안 (공동 편집자 역할)",
+  "session": "new (D)",
+  "thread_id": "<thread-id>",
+  "model": "gpt-6-sol (config.toml)",
+  "reasoning_effort": "high",
+  "sandbox": "read-only",
+  "started_at": "2026-11-01T15:31:28Z",
+  "finished_at": "2026-11-01T15:37:38Z",
+  "exit_code": 0,
+  "response_bytes": 33403,
+  "usage": {"input_tokens": 2436658, "cached_input_tokens": 2259456, "cache_write_input_tokens": 0, "output_tokens": 16376, "reasoning_output_tokens": 3947},
+  "budget": "정리 예산 1/6"
+}

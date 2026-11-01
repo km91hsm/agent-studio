@@ -1,0 +1,17 @@
+{
+  "call": "C2_full_review",
+  "purpose": "정리본(402a5c0) 전체 검토 — 결정 손실·끊어진 참조·이력 잔존·중복·U10 일관성·모순",
+  "session": "D (resume)",
+  "thread_id": "<thread-id>",
+  "model": "gpt-6-sol (config.toml)",
+  "reasoning_effort": "high",
+  "sandbox": "read-only (세션 상속)",
+  "started_at": "2026-11-01T16:33:04Z",
+  "finished_at": "2026-11-01T16:43:56Z",
+  "exit_code": 0,
+  "response_bytes": 18218,
+  "usage_cumulative_thread": {"input_tokens": 7516496, "cached_input_tokens": 7161216, "output_tokens": 43138, "reasoning_output_tokens": 15161},
+  "usage_increment_est": {"input_tokens": 5079838, "cached_input_tokens": 4901760, "output_tokens": 26762, "reasoning_output_tokens": 11214},
+  "verdict": "수정 후 수용 — A1 B6 C6 D3 E10 F7 (Critical 5, High 13, Medium 11, Low 4)",
+  "budget": "정리 예산 2/6"
+}

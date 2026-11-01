@@ -1,0 +1,20 @@
+# 비밀·로컬 파일
+*.env
+.env*
+*.key
+auth.json
+# OS
+Thumbs.db
+.DS_Store
+# 편집기
+.vscode/
+.idea/
+.superpowers/
+# 빌드·의존성
+node_modules/
+dist/
+*.tsbuildinfo
+# 스파이크 임시 산출물
+spikes/**/.tmp/
+.env.local
+*.local.*

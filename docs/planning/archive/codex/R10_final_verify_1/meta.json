@@ -1,0 +1,38 @@
+{
+ "round": "R10_final_verify_1",
+ "call_no": 15,
+ "session": "B6 신규(독립 세션)",
+ "thread_id": "<thread-id>",
+ "started_at": "2026-11-01T15:05:49Z",
+ "finished_at": "2026-11-01T15:12:17Z",
+ "exit_code": 0,
+ "response_bytes": 29974,
+ "usage": {
+  "input_tokens": 1634604,
+  "cached_input_tokens": 1525888,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 22590,
+  "reasoning_output_tokens": 8127
+ },
+ "verdicts": {
+  "VERIFIED": 17,
+  "INSUFFICIENT": 4,
+  "NOT_APPLIED": 0
+ },
+ "new_findings": {
+  "R10-01": "High",
+  "R10-02": "High",
+  "R10-03": "High",
+  "R10-04": "High",
+  "R10-05": "Medium",
+  "R10-06": "High",
+  "R10-07": "High",
+  "R10-08": "Medium",
+  "R10-09": "High",
+  "R10-10": "Medium",
+  "R10-11": "High",
+  "R10-12": "Low",
+  "R10-13": "High",
+  "R10-14": "High"
+ }
+}
