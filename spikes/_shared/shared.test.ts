@@ -23,3 +23,21 @@ describe("_shared", () => {
     expect(addUsage(u, { calls: 1, outputTokens: 5 })).toMatchObject({ calls: 2, inputTokens: 10, outputTokens: 5 });
   });
 });
+
+describe("sanitizeEvents", () => {
+  it("MCP 기동 실패 알림의 긴 error 본문(HTML 챌린지 등)을 잘라낸다", async () => {
+    const { sanitizeEvents } = await import("./mask.js");
+    const big = "HTTP 403: <html>" + "x".repeat(5000) + "</html>";
+    const events = [
+      { t: 1, dir: "in", msg: { method: "mcpServer/startupStatus/updated", params: { name: "s", status: "failed", error: big } } },
+      { t: 2, dir: "in", msg: { method: "item/completed", params: { item: { type: "agentMessage", text: "x".repeat(5000) } } } },
+    ];
+    const out = sanitizeEvents(events);
+    const err = (out[0].msg as { params: { error: string } }).params.error;
+    expect(err.length).toBeLessThan(400);
+    expect(err).toContain("<error-body-removed");
+    expect(err).not.toContain("</html>");
+    // 다른 알림은 손대지 않는다
+    expect((out[1].msg as { params: { item: { text: string } } }).params.item.text.length).toBe(5000);
+  });
+});

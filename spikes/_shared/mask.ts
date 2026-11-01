@@ -18,3 +18,16 @@ export function mask(text: string): string {
   if (host) out = out.split(host).join("<host>");
   return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>").replace(INSTALLATION_ID, "$1<installation-id>$2");
 }
+
+/** 녹화 이벤트 정화: MCP 기동 상태 알림의 긴 error 본문(HTML 챌린지·토큰성 질의 문자열)을 잘라낸다. */
+export function sanitizeEvents<T extends { msg: unknown }>(events: T[], maxErrorLen = 200): T[] {
+  return events.map((e) => {
+    const msg = e.msg as { method?: string; params?: { error?: unknown } } | undefined;
+    if (msg?.method === "mcpServer/startupStatus/updated" && typeof msg.params?.error === "string" && msg.params.error.length > maxErrorLen) {
+      const err = msg.params.error;
+      const cut = err.slice(0, maxErrorLen).replace(/<[^>]*$/, "");
+      return { ...e, msg: { ...msg, params: { ...msg.params, error: `${cut} <error-body-removed len=${err.length}>` } } };
+    }
+    return e;
+  });
+}

@@ -14,7 +14,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSampleRepo, type SampleRepo } from "../_shared/sampleRepo.js";
-import { mask } from "../_shared/mask.js";
+import { mask, sanitizeEvents } from "../_shared/mask.js";
 import { AppServerClient, RpcError, type Turn } from "./client.js";
 
 const LIVE = !!process.env.AGENT_STUDIO_LIVE;
@@ -29,7 +29,7 @@ let repo: SampleRepo | undefined;
 
 function saveFixture(name: string, client: AppServerClient) {
   mkdirSync(FIXTURE_DIR, { recursive: true });
-  writeFileSync(join(FIXTURE_DIR, `s1b-${name}.jsonl`), mask(client.recording().map((e) => JSON.stringify(e)).join("\n") + "\n"));
+  writeFileSync(join(FIXTURE_DIR, `s1b-${name}.jsonl`), mask(sanitizeEvents(client.recording()).map((e) => JSON.stringify(e)).join("\n") + "\n"));
 }
 
 describe.skipIf(!LIVE)("S1b codex app-server steer/interrupt/resume/fork (LIVE)", () => {
@@ -76,7 +76,7 @@ describe.skipIf(!LIVE)("S1b codex app-server steer/interrupt/resume/fork (LIVE)"
     }
   });
 
-  it("resume(같은 프로세스): 이전 아이템 재수신; fork{lastTurnId}: 새 thread id; queue/add: opt-in 없이 거부", async () => {
+  it("resume(새 프로세스): 이전 아이템 재수신; fork{lastTurnId}: 새 thread id; queue/add: opt-in 없이 거부", async () => {
     const threadId = observations.threadId as string;
     const client = new AppServerClient({ label: "s1b-resume" });
     try {

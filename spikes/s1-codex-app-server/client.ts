@@ -68,6 +68,8 @@ export interface ClientOptions {
   codexBin?: string;
   /** `-c key=value` 오버라이드(사용자 config.toml 무수정 원칙) */
   configOverrides?: string[];
+  /** 테스트용: ["app-server", ...] 대신 쓸 인자(가짜 서버 주입 심) */
+  spawnArgs?: string[];
   env?: NodeJS.ProcessEnv;
   requestTimeoutMs?: number;
 }
@@ -80,6 +82,10 @@ export class AppServerClient {
   private serverRequestHandlers: ((req: ServerRequest) => void)[] = [];
   private recorded: RecordedEvent[] = [];
   private usage = new Map<string, { count: number; last: unknown; total: unknown }>();
+  private usageByTurn = new Map<string, number>();
+  private completedTurns = new Map<string, Turn>();
+  private resolvedRequests: (number | string)[] = [];
+  private protocolErrors: { line: string; error: string }[] = [];
   private stderrBuf = "";
   private exitInfo: { code: number | null; signal: string | null } | null = null;
   readonly label: string;
@@ -103,8 +109,8 @@ export class AppServerClient {
   start(): void {
     if (this.proc) return;
     const bin = this.opts.codexBin ?? process.env.CODEX_BIN ?? "codex";
-    const args = ["app-server"];
-    for (const o of this.opts.configOverrides ?? []) args.push("-c", o);
+    const args = this.opts.spawnArgs ? [...this.opts.spawnArgs] : ["app-server"];
+    if (!this.opts.spawnArgs) for (const o of this.opts.configOverrides ?? []) args.push("-c", o);
     this.proc = spawn(bin, args, {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, ...this.opts.env },
@@ -132,8 +138,10 @@ export class AppServerClient {
     let msg: Record<string, unknown>;
     try {
       msg = JSON.parse(line) as Record<string, unknown>;
-    } catch {
+    } catch (e) {
       this.recorded.push({ t: Date.now(), dir: "in", msg: { unparsed: line } });
+      this.protocolErrors.push({ line: line.slice(0, 500), error: String(e) });
+      this.events.emit("protocolError", this.protocolErrors.at(-1));
       return;
     }
     this.recorded.push({ t: Date.now(), dir: "in", msg });
@@ -163,6 +171,13 @@ export class AppServerClient {
         const tu = n.params.tokenUsage as { last: unknown; total: unknown };
         const cur = this.usage.get(tid) ?? { count: 0, last: undefined, total: undefined };
         this.usage.set(tid, { count: cur.count + 1, last: tu?.last, total: tu?.total });
+        const tk = `${tid}:${n.params.turnId as string}`;
+        this.usageByTurn.set(tk, (this.usageByTurn.get(tk) ?? 0) + 1);
+      } else if (n.method === "turn/completed") {
+        const turn = n.params.turn as Turn;
+        this.completedTurns.set(`${n.params.threadId as string}:${turn.id}`, turn);
+      } else if (n.method === "serverRequest/resolved") {
+        this.resolvedRequests.push(n.params.requestId as number | string);
       }
       this.events.emit("notification", n);
       this.events.emit(`notification:${n.method}`, n);
@@ -260,6 +275,9 @@ export class AppServerClient {
   }
 
   waitForTurnCompleted(threadId: string, turnId: string, timeoutMs?: number): Promise<{ turn: Turn }> {
+    // 구독 전에 이미 도착한 완료 알림(turn/start 응답과 같은 청크에 올 수 있음)
+    const buffered = this.completedTurns.get(`${threadId}:${turnId}`);
+    if (buffered) return Promise.resolve({ turn: buffered });
     return this.waitForNotification(
       "turn/completed",
       (n) => n.params.threadId === threadId && (n.params.turn as Turn)?.id === turnId,
@@ -312,8 +330,19 @@ export class AppServerClient {
   }
 
   // ---- 관찰 ----
-  tokenUsage(threadId: string): { count: number; last: unknown; total: unknown } {
-    return this.usage.get(threadId) ?? { count: 0, last: undefined, total: undefined };
+  /** turnId를 주면 그 턴에 상관된 알림 수만 센다(AC-P00-2 "tokenUsage 상관"). */
+  tokenUsage(threadId: string, turnId?: string): { count: number; last: unknown; total: unknown } {
+    const u = this.usage.get(threadId) ?? { count: 0, last: undefined, total: undefined };
+    if (turnId === undefined) return u;
+    return { ...u, count: this.usageByTurn.get(`${threadId}:${turnId}`) ?? 0 };
+  }
+
+  resolvedRequestIds(): (number | string)[] {
+    return [...this.resolvedRequests];
+  }
+
+  protocolErrorList(): { line: string; error: string }[] {
+    return [...this.protocolErrors];
   }
 
   recording(): RecordedEvent[] {
