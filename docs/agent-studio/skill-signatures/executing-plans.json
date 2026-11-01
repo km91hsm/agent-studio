@@ -1,14 +1,35 @@
 {
   "skill_id": "obra/superpowers/executing-plans",
   "skill_commit": "2ce8aa1",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:executing-plans", "required": false },
-    { "order": 2, "event_pattern": "/^command:.*(sdd-workspace|task-start|task-done)/", "required": true, "note": "스킬 전용 스크립트 호출(브리프·ledger)" },
-    { "order": 3, "artifact_glob": ".superpowers/sdd/**/progress.md", "required": false, "note": "ledger 갱신(Write/Edit로 관찰될 때만)" },
-    { "order": 4, "event_pattern": "test_run:pass", "required": false, "note": "task-done 검증 실행" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:executing-plans",
+      "required": false,
+      "note": "정체 신호(선택)"
+    },
+    {
+      "order": 2,
+      "event_pattern": "/^command:.*(sdd-workspace|task-start)/",
+      "required": true,
+      "note": "스킬 전용 스크립트: 워크스페이스·브리프"
+    },
+    {
+      "order": 3,
+      "event_pattern": "/^command:.*task-done/",
+      "required": true,
+      "note": "task-start 이후 task-done (리뷰: 순서 요구)"
+    },
+    {
+      "order": 4,
+      "artifact_glob": ".superpowers/sdd/**/progress.md",
+      "required": false,
+      "note": "ledger 갱신(Write/Edit로 관찰될 때만)"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

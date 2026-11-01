@@ -1,12 +1,23 @@
 {
   "skill_id": "obra/superpowers/writing-plans",
   "skill_commit": "2ce8aa1",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:writing-plans", "required": false },
-    { "order": 2, "artifact_glob": "docs/plans/**/*.md", "required": true, "note": "계획 파일 docs/plans/YYYY-MM-DD-<name>.md 작성" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:writing-plans",
+      "required": false,
+      "note": "정체 신호(선택)"
+    },
+    {
+      "order": 2,
+      "artifact_glob": "docs/superpowers/plans/**/*.md",
+      "required": true,
+      "note": "SKILL.md 원문: docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md (리뷰 #2로 경로 수정; 실험 4 양성 사례 docs/superpowers/plans/2026-11-02-json-flag.md)"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "계획 파일 하나만으로는 일반 계획 작성과 구별되지 않는다(리뷰). 정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

@@ -1,14 +1,42 @@
 {
   "skill_id": "obra/superpowers/systematic-debugging",
   "skill_commit": "2ce8aa1",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:systematic-debugging", "required": false },
-    { "order": 2, "event_pattern": "test_run:fail", "required": true, "note": "Phase 1 재현: 편집 전에 실패를 먼저 관찰" },
-    { "order": 3, "artifact_glob": "**/*.{js,mjs,ts}", "required": true, "note": "Phase 4 수정(재현 이후)" },
-    { "order": 4, "event_pattern": "test_run:pass", "required": true, "note": "수정 검증" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:systematic-debugging",
+      "required": false,
+      "note": "정체 신호(선택)"
+    },
+    {
+      "order": 2,
+      "event_pattern": "/^command:.*(node -e|node --test|npm test|git (log|show|blame|bisect)|rg |grep )/",
+      "required": true,
+      "note": "Phase 1 조사·재현 프로브(테스트 파일 작성 전에 나타나야 함)"
+    },
+    {
+      "order": 3,
+      "event_pattern": "test_run:fail",
+      "required": true,
+      "note": "재현: 편집 전에 실패를 먼저 관찰"
+    },
+    {
+      "order": 4,
+      "artifact_glob": "**/*.{js,mjs,ts,tsx,py}",
+      "exclude_glob": "**/*.test.{js,mjs,ts,tsx,py}",
+      "required": true,
+      "note": "Phase 4 수정(재현 이후)"
+    },
+    {
+      "order": 5,
+      "event_pattern": "test_run:pass",
+      "required": true,
+      "note": "수정 검증"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "diagnosing-bugs 도 재현→수정 절차를 내므로(실험 2) 가설·원인 조사 단계는 도구 관찰값으로 구별되지 않는다. 정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

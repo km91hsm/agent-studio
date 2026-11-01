@@ -50,7 +50,7 @@ function saveCodex(name: string, s: CodexSummary) {
   mkdirSync(CODEX_FIX, { recursive: true });
   writeFileSync(join(CODEX_FIX, `s7-${name}.jsonl`), mask(sanitizeEvents(s.recording as { msg: unknown }[]).map((e) => JSON.stringify(e)).join("\n") + "\n"));
 }
-const summarizeClaude = (s: ClaudeSummary) => ({ skillCalls: s.skillCalls, tools: s.toolUses.map((t) => `${t.name}${t.name === "Skill" ? `(${String(t.input.skill ?? "")})` : WRITE_TOOL(t) ? `(${String(t.input.file_path ?? "")})` : t.name === "Bash" ? `(${String(t.input.command ?? "").slice(0, 60)})` : ""}`), numTurns: s.numTurns, durationMs: s.durationMs, resultSubtype: s.resultSubtype, costUsd: s.costUsd, finalText: s.finalText.slice(0, 1200) });
+const summarizeClaude = (s: ClaudeSummary) => ({ skillCalls: s.skillCalls, tools: s.toolUses.map((t) => `${t.name}${t.name === "Skill" ? `(${String(t.input.skill ?? "")})` : WRITE_TOOL(t) ? `(${String(t.input.file_path ?? "")})` : t.name === "Bash" ? `(${String(t.input.command ?? "").slice(0, 60)})` : ""}`), numTurns: s.numTurns, durationMs: s.durationMs, resultSubtype: s.resultSubtype, costUsd: s.costUsd, usage: s.usage, finalText: s.finalText.slice(0, 1200) });
 const WRITE_TOOL = (t: { name: string }) => ["Write", "Edit", "MultiEdit"].includes(t.name);
 const summarizeCodex = (s: CodexSummary) => ({ turnStatus: s.turnStatus, turnError: s.turnError, items: s.items.map((i) => (i.type === "commandExecution" ? `cmd(${(i.command ?? "").slice(0, 70)})=${i.exitCode}` : i.type === "fileChange" ? `fileChange(${(i.paths ?? []).join(",")})` : i.type)), serverRequests: s.serverRequests, durationMs: s.durationMs, usage: s.usage, finalText: s.finalText.slice(0, 1200) });
 const skillInput = (name: string) => ({ type: "skill" as const, name, path: codexSkillPaths.get(name)?.path ?? join(CODEX_SKILLS_DIR, name, "SKILL.md") });
@@ -90,7 +90,7 @@ describe.skipIf(!LIVE)("S7 skills evidence / auto-selection / conflict experimen
       const parsed = parseSkillsList(raw);
       codexSkillPaths = parsed.byName;
       const sample = JSON.stringify(raw).slice(0, 1500);
-      observations.skillsList = { names: parsed.names, responseSample: sample, grades: Object.fromEntries(LEAD_SKILLS.map((n) => [n, gradeCodex({ listed: parsed.names.includes(n), injection: null, procedureObserved: false })])) };
+      observations.skillsList = { names: parsed.names, responseSample: sample, grades: Object.fromEntries(LEAD_SKILLS.map((n) => [n, gradeCodex({ listed: parsed.names.includes(n), injection: null, skillReadObserved: false, procedureObserved: false })])) };
       mkdirSync(CODEX_FIX, { recursive: true });
       writeFileSync(join(CODEX_FIX, "s7-skills-list.json"), mask(JSON.stringify(raw, null, 2)) + "\n");
       for (const n of LEAD_SKILLS) expect(parsed.names, n).toContain(n);
@@ -126,10 +126,11 @@ describe.skipIf(!LIVE)("S7 skills evidence / auto-selection / conflict experimen
     const sig = loadSignature("test-driven-development");
     const match = matchSignature(sig, obs);
     const injection = s.turnError ? "rejected" : "accepted";
-    const grade = gradeCodex({ listed: codexSkillPaths.has("test-driven-development"), injection, procedureObserved: match.inOrder && match.missingRequired.length === 0 });
+    const skillReadObserved = obs.some((o) => o.value === "skill_invoked:test-driven-development");
+    const grade = gradeCodex({ listed: codexSkillPaths.has("test-driven-development"), injection, skillReadObserved, procedureObserved: match.inOrder && match.missingRequired.length === 0 });
     const tests = runTests(repo.dir);
     const commit = gitCommitAll(repo.dir, "fix: sum (codex, test-driven-development)");
-    observations.codexExplicitTdd = { grade, injection, observations: obs, signatureMatch: match, testsAfter: tests, commit, diffStat: gitDiffStat(repo.dir), skillPath: skillInput("test-driven-development").path, ...summarizeCodex(s) };
+    observations.codexExplicitTdd = { grade, injection, skillReadObserved, observations: obs, signatureMatch: match, testsAfter: tests, commit, diffStat: gitDiffStat(repo.dir), skillPath: skillInput("test-driven-development").path, ...summarizeCodex(s) };
     expect(s.turnStatus).toBe("completed");
     expect(["INJECTION_ACCEPTED", "LOAD_OBSERVED"]).toContain(grade);
     expect(tests.exitCode, tests.output).toBe(0);
@@ -195,12 +196,13 @@ describe.skipIf(!LIVE)("S7 skills evidence / auto-selection / conflict experimen
     const xs = await runCodex({ label: "codex-code-review", cwd: cRepo.dir, input: [{ type: "text", text: `$code-review ${reviewPrompt("No sub-agents are available in this session: run both axes yourself, sequentially.")}` }, skillInput("code-review")] });
     saveCodex("codex-code-review", xs);
     const xObs = observationsFromCodex(xs.items, cRepo.dir, LEAD_SKILLS);
+    const xReviewMatch = matchSignature(loadSignature("code-review"), xObs); // 리뷰 #3: 헤딩은 프롬프트가 요구했으므로 독립 신호가 아님
     const cs = await runClaude({ label: "claude-code-review", cwd: xRepo.dir, prompt: `Use the code-review skill (invoke it with the Skill tool first). ${reviewPrompt("")}` });
     saveClaude("claude-code-review", cs);
     const subagentTools = cs.toolUses.filter((t) => t.name === "Task" || t.name === "Agent").length;
     observations.conflictReview = {
-      codex: { grade: gradeCodex({ listed: codexSkillPaths.has("code-review"), injection: xs.turnError ? "rejected" : "accepted", procedureObserved: /## Standards/.test(xs.finalText) && /## Spec/.test(xs.finalText) }), hasStandards: /## Standards/.test(xs.finalText), hasSpec: /## Spec/.test(xs.finalText), observations: xObs, dirty: cRepo.status(), ...summarizeCodex(xs) },
-      claude: { grade: gradeClaude({ skill: "code-review", initSkills: cs.initSkills, explicit: true, toolUses: cs.toolUses.map((t) => ({ name: t.name, input: t.input, isError: t.isError })) }), hasStandards: /## Standards/.test(cs.finalText), hasSpec: /## Spec/.test(cs.finalText), subagentCalls: subagentTools, dirty: xRepo.status(), ...summarizeClaude(cs) },
+      codex: { grade: gradeCodex({ listed: codexSkillPaths.has("code-review"), injection: xs.turnError ? "rejected" : "accepted", skillReadObserved: xObs.some((o) => o.value === "skill_invoked:code-review"), procedureObserved: xReviewMatch.inOrder && xReviewMatch.missingRequired.length === 0 }), signatureMatch: xReviewMatch, headingsRequestedByPrompt: true, hasStandards: /## Standards/.test(xs.finalText), hasSpec: /## Spec/.test(xs.finalText), observations: xObs, dirty: cRepo.status(), ...summarizeCodex(xs) },
+      claude: { grade: gradeClaude({ skill: "code-review", initSkills: cs.initSkills, explicit: true, toolUses: cs.toolUses.map((t) => ({ name: t.name, input: t.input, isError: t.isError })) }), signatureMatch: matchSignature(loadSignature("code-review"), observationsFromClaude(cs.toolUses, xRepo.dir)), hasStandards: /## Standards/.test(cs.finalText), hasSpec: /## Spec/.test(cs.finalText), subagentCalls: subagentTools, dirty: xRepo.status(), ...summarizeClaude(cs) },
     };
     expect(xs.turnStatus).toBe("completed");
     expect(cRepo.status(), "codex review must not modify files").toEqual([]);

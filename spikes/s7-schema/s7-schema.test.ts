@@ -37,13 +37,15 @@ describe("S7 schema bundle (CI)", () => {
     expect(provenance).toMatch(/codex-cli 0\.\d+\.\d+/);
   });
 
-  it("v2 번들을 archive/evidence 사본(2026-11-01)과 대조한 결과가 PROVENANCE.md에 기록돼 있다", () => {
+  it("v2 번들이 archive/evidence 사본(2026-11-01)과 같고 그 결과가 PROVENANCE.md에 기록돼 있다", () => {
     const provenance = readFileSync(join(SCHEMA_DIR, "PROVENANCE.md"), "utf8");
     expect(provenance).toMatch(/archive_match: (true|false)/);
     const v2 = readdirSync(SCHEMA_DIR).find((f) => /v2.*\.json$/.test(f));
     expect(v2, "v2 bundle file").toBeDefined();
     const match = sha256(join(SCHEMA_DIR, v2!)) === ARCHIVE_V2_SHA;
     expect(provenance).toContain(`archive_match: ${match}`);
+    // 리뷰 #10: 기록 일치만이 아니라 archive 사본과의 해시 동등성 자체를 단언한다(0.166.0 고정; 버전이 바뀌면 ARCHIVE_V2_SHA 갱신이 명시적 절차)
+    expect(match, "v2 bundle must equal the 2026-11-01 archive copy").toBe(true);
   });
 });
 

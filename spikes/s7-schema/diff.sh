@@ -2,10 +2,12 @@
 # S7 Step 1 — codex app-server 프로토콜 스키마를 재생성해 커밋본(spikes/s7-schema/codex-schema/)과 비교한다.
 #   bash spikes/s7-schema/diff.sh            : 재생성 → diff -r (변경 시 비0 종료)   ← P01 T10 CI 입력
 #   bash spikes/s7-schema/diff.sh --update   : 커밋본 갱신 + PROVENANCE.md(버전·sha256·archive 대조)
-#   S7_SCHEMA_DIR=<dir> 로 비교 대상을 바꿀 수 있다(테스트의 변조본 검사용).
+#                                              갱신 대상은 항상 정본 디렉터리(S7_SCHEMA_DIR 무시 — 리뷰 #9), 덮어쓰기 전에 diff 요약을 출력
+#   S7_SCHEMA_DIR=<dir> 로 "비교" 대상만 바꿀 수 있다(테스트의 변조본 검사용).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET="${S7_SCHEMA_DIR:-$HERE/codex-schema}"
+CANON="$HERE/codex-schema"
+TARGET="${S7_SCHEMA_DIR:-$CANON}"
 # docs/planning/archive/evidence/codex_schema_0.166.0/PROVENANCE.md 의 v2 번들 sha256(2026-11-01)
 ARCHIVE_SHA="f72bb03a3f519cd19b37a030b42453128ff5b88abaad8c1264cf1ca197dbbed0"
 
@@ -15,7 +17,14 @@ codex app-server generate-json-schema --out "$TMP/out" --experimental -c feature
 VERSION="$(codex --version)"
 
 if [[ "${1:-}" == "--update" ]]; then
+  if [[ -n "${S7_SCHEMA_DIR:-}" ]]; then echo "note: S7_SCHEMA_DIR is ignored for --update; updating canonical $CANON" >&2; fi
+  TARGET="$CANON"
   mkdir -p "$TARGET"
+  if diff -rq -x PROVENANCE.md "$TARGET" "$TMP/out" >"$TMP/pre.txt" 2>&1; then
+    echo "no schema change vs $TARGET ($VERSION); refreshing PROVENANCE.md only"
+  else
+    echo "schema changes to be applied ($(wc -l <"$TMP/pre.txt" | tr -d ' ') entries):"; head -40 "$TMP/pre.txt"
+  fi
   find "$TARGET" -mindepth 1 -not -name PROVENANCE.md -delete
   cp -r "$TMP/out"/. "$TARGET"/
   V2="$(find "$TARGET" -maxdepth 1 -name '*v2*.json' | head -1)"
@@ -27,7 +36,7 @@ if [[ "${1:-}" == "--update" ]]; then
     echo "- 명령: \`codex app-server generate-json-schema --out <tmp> --experimental -c features.memories=false\` → 이 폴더로 복사"
     echo "- 버전: $VERSION"
     echo "- 생성 시각: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    echo "- 재검증: \`bash spikes/s7-schema/diff.sh\` (재생성 결과가 다르면 비0 종료)"
+    echo "- 재검증: \`bash spikes/s7-schema/diff.sh\` (재생성 결과가 다르면 비0 종료) / 갱신: \`--update\`(정본 디렉터리만, 덮어쓰기 전 diff 출력)"
     echo
     echo "| 파일 | bytes | sha256 |"
     echo "|---|---|---|"

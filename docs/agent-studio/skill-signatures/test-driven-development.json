@@ -1,15 +1,42 @@
 {
   "skill_id": "obra/superpowers/test-driven-development",
   "skill_commit": "2ce8aa1",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:test-driven-development", "required": false, "note": "Claude: Skill 도구 블록 / Codex: SKILL.md 읽기 명령" },
-    { "order": 2, "artifact_glob": "**/*.test.{js,mjs,ts}", "required": true, "note": "RED: 실패 테스트 파일 먼저" },
-    { "order": 3, "event_pattern": "test_run:fail", "required": true, "note": "실패 확인 실행" },
-    { "order": 4, "artifact_glob": "**/*.{js,mjs,ts}", "required": true, "note": "GREEN: 구현 변경(2단계 이후)" },
-    { "order": 5, "event_pattern": "test_run:pass", "required": true, "note": "통과 확인 실행" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:test-driven-development",
+      "required": false,
+      "note": "정체 신호(선택): Claude Skill 블록 / Codex SKILL.md 읽기. 주입 시 Codex는 읽기 명령을 내지 않는다"
+    },
+    {
+      "order": 2,
+      "artifact_glob": "**/*.test.{js,mjs,ts,tsx,py}",
+      "required": true,
+      "note": "RED: 실패 테스트 파일 먼저"
+    },
+    {
+      "order": 3,
+      "event_pattern": "test_run:fail",
+      "required": true,
+      "note": "실패 확인 실행"
+    },
+    {
+      "order": 4,
+      "artifact_glob": "**/*.{js,mjs,ts,tsx,py}",
+      "exclude_glob": "**/*.test.{js,mjs,ts,tsx,py}",
+      "required": true,
+      "note": "GREEN: 구현 변경(테스트 파일 재편집은 제외 — 리뷰 시그니처 표)"
+    },
+    {
+      "order": 5,
+      "event_pattern": "test_run:pass",
+      "required": true,
+      "note": "통과 확인 실행"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "경쟁 스킬 tdd(mattpocock)도 같은 절차를 내므로(실험 1) 이 시그니처는 정체를 증명하지 않는다. 정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

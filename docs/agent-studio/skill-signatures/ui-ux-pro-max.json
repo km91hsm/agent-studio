@@ -1,13 +1,35 @@
 {
   "skill_id": "nextlevelbuilder/ui-ux-pro-max-skill/ui-ux-pro-max",
   "skill_commit": "3a13158",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:ui-ux-pro-max", "required": false },
-    { "order": 2, "event_pattern": "/^command:.*(python|uv run).*search[.]py/", "required": true, "note": "스킬 동봉 검색 스크립트(style·palette·font 조회)" },
-    { "order": 3, "artifact_glob": "**/*.{html,css,tsx,jsx,md}", "required": false, "note": "디자인 체계 산출물" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:ui-ux-pro-max",
+      "required": false,
+      "note": "정체 신호(선택)"
+    },
+    {
+      "order": 2,
+      "event_pattern": "/^command:.*(python|uv run)[^\\n]*ui-ux-pro-max[\\\\/]+scripts[\\\\/]+search\\.py/",
+      "required": true,
+      "note": "동봉 검색 스크립트(SKILL.md: python \"…/ui-ux-pro-max/scripts/search.py\" \"<query>\")"
+    },
+    {
+      "order": 3,
+      "event_pattern": "/^command:.*search\\.py[^\\n]*--design-system/",
+      "required": false,
+      "note": "디자인 체계 생성 모드(프로젝트 초기 1회) — 리뷰: 실제 절차 특정"
+    },
+    {
+      "order": 4,
+      "artifact_glob": "**/*.{html,css,tsx,jsx,md}",
+      "required": false,
+      "note": "디자인 체계 산출물"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

@@ -1,12 +1,23 @@
 {
   "skill_id": "obra/superpowers/brainstorming",
   "skill_commit": "2ce8aa1",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:brainstorming", "required": false },
-    { "order": 2, "artifact_glob": "docs/plans/**/*-design.md", "required": true, "note": "설계 문서 docs/plans/YYYY-MM-DD-<topic>-design.md" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:brainstorming",
+      "required": false,
+      "note": "정체 신호(선택)"
+    },
+    {
+      "order": 2,
+      "artifact_glob": "docs/superpowers/specs/**/*-design.md",
+      "required": true,
+      "note": "SKILL.md 원문: docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md (리뷰 #2로 경로 수정)"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "질문·접근안·설계 승인 단계는 대화 관찰값이라 도구 관찰값에 없다(리뷰). 정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

@@ -1,13 +1,36 @@
 {
   "skill_id": "obra/superpowers/writing-skills",
   "skill_commit": "2ce8aa1",
-  "version": 1,
+  "version": 2,
   "steps": [
-    { "order": 1, "event_pattern": "skill_invoked:writing-skills", "required": false },
-    { "order": 2, "artifact_glob": "**/SKILL.md", "required": true, "note": "SKILL.md 작성(frontmatter name/description)" },
-    { "order": 3, "artifact_glob": "**/*.md", "required": false, "note": "참조 문서" }
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:writing-skills",
+      "required": false,
+      "note": "정체 신호(선택)"
+    },
+    {
+      "order": 2,
+      "event_pattern": "/^command:.*(claude -p|codex exec|baseline|pressure)/i",
+      "required": false,
+      "note": "baseline(스킬 없이 실패) 압박 시나리오 실행 — 서브에이전트 호출은 Bash 관찰값에 안 보일 수 있어 선택"
+    },
+    {
+      "order": 3,
+      "artifact_glob": "**/SKILL.md",
+      "required": true,
+      "note": "SKILL.md 작성(frontmatter name/description)"
+    },
+    {
+      "order": 4,
+      "artifact_glob": "**/*.md",
+      "exclude_glob": "**/SKILL.md",
+      "required": false,
+      "note": "참조 문서"
+    }
   ],
   "author": "claude",
-  "reviewed_by": null,
-  "created_seq": 0
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
+  "created_seq": 0,
+  "note": "SKILL.md 작성은 다른 제작 방식(skill-creator)과 구별되지 않는다(리뷰). 정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }

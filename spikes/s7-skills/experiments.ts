@@ -4,7 +4,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { AppServerClient, type ServerRequest, type UserInput } from "../s1-codex-app-server/client.js";
 import { ClaudeRun, type ClaudeRunOpts } from "../s2-claude-sdk/run.js";
@@ -180,6 +180,10 @@ export function observationsFromClaude(toolUses: ToolUse[], cwd: string): Observ
     else if (WRITE_TOOLS.has(u.name)) {
       const p = String(u.input.file_path ?? u.input.notebook_path ?? "");
       if (p) obs.push({ seq: u.seq, kind: "artifact", value: toRel(cwd, p) });
+    } else if (u.name === "Read") {
+      obs.push({ seq: u.seq, kind: "event", value: `read:${toRel(cwd, String(u.input.file_path ?? ""))}` }); // 스펙·표준 출처 읽기 신호(code-review 3단계)
+    } else if (u.name === "Glob" || u.name === "Grep") {
+      obs.push({ seq: u.seq, kind: "event", value: `search:${String(u.input.pattern ?? "")}` });
     } else if (u.name === "Bash" || u.name === "PowerShell") {
       const cmd = String(u.input.command ?? "");
       obs.push({ seq: u.seq, kind: "event", value: `command:${cmd.slice(0, 200)}` });
@@ -235,7 +239,7 @@ export async function runCodex(opts: CodexRunOpts): Promise<CodexSummary> {
   try {
     client.onServerRequest((req: ServerRequest) => {
       serverRequests.push({ method: req.method, itemId: (req.params as { itemId?: string }).itemId });
-      if (req.method === "item/fileChange/requestApproval" || req.method === "item/commandExecution/requestApproval") client.respond(req.id, { decision: "accept" });
+      if (req.method === "item/fileChange/requestApproval" || req.method === "item/commandExecution/requestApproval") client.respond(req.id, { decision: approvalDecision(req.params, opts.cwd) }); // 리뷰 #7
       else client.respondError(req.id, -32601, `spike does not handle ${req.method}`);
     });
     client.onNotification("item/completed", (n) => {
@@ -270,12 +274,36 @@ export async function runCodex(opts: CodexRunOpts): Promise<CodexSummary> {
   }
 }
 
+/**
+ * 리뷰 #7: 승인 요청(params.cwd, params.changes[].path, 명령 문자열 안의 절대 경로)이 모두 실험 저장소(cwd) 안일 때만 accept.
+ * `..` 상위 참조·다른 드라이브·홈 디렉터리 등 밖을 가리키면 decline.
+ */
+export function approvalDecision(params: unknown, cwd: string): "accept" | "decline" {
+  const base = resolve(cwd).replace(/\\/g, "/").toLowerCase().replace(/\/$/, "");
+  const inside = (p: string) => {
+    const r = resolve(p).replace(/\\/g, "/").toLowerCase();
+    return r === base || r.startsWith(base + "/");
+  };
+  const paths: string[] = [];
+  const walk = (v: unknown) => {
+    if (typeof v === "string") {
+      if (/^(?:[A-Za-z]:[\\/]|\/)/.test(v)) paths.push(v);
+      for (const m of v.matchAll(/[A-Za-z]:[\\/][^\s'"`;|&<>]*/g)) paths.push(m[0]);
+    } else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v as Record<string, unknown>).forEach(walk);
+  };
+  walk(params);
+  return paths.every(inside) ? "accept" : "decline";
+}
+
 export function observationsFromCodex(items: CodexItem[], cwd: string, skillNames: readonly string[]): Observation[] {
   const obs: Observation[] = [];
   for (const it of items) {
     if (it.type === "commandExecution") {
       const cmd = it.command ?? "";
-      for (const s of skillNames) if (new RegExp(`skills[\\\\/]+${s}[\\\\/]+SKILL\\.md`).test(cmd)) obs.push({ seq: it.seq, kind: "event", value: `skill_invoked:${s}` });
+      // 리뷰 #4: 경로가 명령에 있어도 실패(exitCode≠0)·출력 없음(경로 나열·검색)은 "읽음"으로 세지 않는다
+      const readOk = it.exitCode === 0 && (it.output ?? "").trim().length > 0;
+      for (const s of skillNames) if (readOk && new RegExp(`skills[\\\\/]+${s}[\\\\/]+SKILL\\.md`).test(cmd)) obs.push({ seq: it.seq, kind: "event", value: `skill_invoked:${s}` });
       obs.push({ seq: it.seq, kind: "event", value: `command:${cmd.slice(0, 200)}` });
       if (TEST_RUNNER_RE.test(cmd)) obs.push({ seq: it.seq, kind: "event", value: `test_run:${it.exitCode === 0 ? "pass" : "fail"}` });
     } else if (it.type === "fileChange") {

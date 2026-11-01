@@ -1,22 +1,29 @@
 {
   "skill_id": "mattpocock/skills/code-review",
   "skill_commit": "4ae2317",
-  "version": 1,
+  "version": 2,
   "steps": [
     {
       "order": 1,
       "event_pattern": "skill_invoked:code-review",
-      "required": false
+      "required": false,
+      "note": "정체 신호(선택)"
     },
     {
       "order": 2,
       "event_pattern": "/git (diff|log|merge-base|status|rev-parse|show)/",
       "required": true,
-      "note": "기준점 이후 변경 수집(Standards·Spec 두 축 입력). S7 실험 3: Codex는 pwsh -Command 래퍼 안에서 git rev-parse HEAD~1 만 썼으므로 앵커 없이 rev-parse|show 포함"
+      "note": "기준점 이후 변경 수집(Codex는 pwsh 래퍼 안이라 앵커 없음)"
+    },
+    {
+      "order": 3,
+      "event_pattern": "/(AGENTS\\.md|CONTRIBUTING|CODING_STANDARDS|STYLE|README|SPEC|\\.github)/i",
+      "required": true,
+      "note": "Standards·Spec 출처 수집(SKILL.md §3 표준 출처 식별 + 스펙 읽기) — 리뷰 #3·표: 헤딩만으로는 판정하지 않는다"
     }
   ],
   "author": "claude",
-  "reviewed_by": null,
+  "reviewed_by": "codex:docs/reviews/codex/S7/response.md (2026-11-02, 판정 '수정 후 수용' — 시그니처 표 9건 반영 v2; 반영분 재검토는 P07)",
   "created_seq": 0,
-  "note": "리뷰 스킬은 저장소를 변경하지 않아야 한다(음성 제약은 시그니처 밖에서 git status로 단언)"
+  "note": "리뷰 스킬은 저장소를 변경하지 않아야 한다(음성 제약은 git status로 단언). 정체 신호(Claude Skill 블록 / Codex 주입 수락·SKILL.md 읽기)는 시그니처 밖에서 판정한다 — 이 단계들은 절차 신호다(리뷰 #1)"
 }
