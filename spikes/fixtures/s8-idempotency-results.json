@@ -1,0 +1,70 @@
+{
+  "patch-then-crash": {
+    "status": 1,
+    "signal": null,
+    "stdout": "[worker] patch-then-crash: crashing before ledger.commit()",
+    "stderr": ""
+  },
+  "assess:patch-then-crash": "done",
+  "ledger:patch-then-crash": {
+    "version": 1,
+    "effects": {
+      "fp-crash": {
+        "key": "fp-crash",
+        "spec": {
+          "kind": "file_patch",
+          "path": "index.js",
+          "baseBlob": "7d658310b0d95fd8c4981c2cc0fad840aebd6a20",
+          "targetBlob": "f05a1d117648d293f6e2f6c15ebabda56d9f86a3",
+          "patchHash": "d44eba57c3b06c11d3c8a6fde303f3f5be6c3420",
+          "fileMode": "100644"
+        },
+        "state": "committed",
+        "intendedAt": "2026-11-01T21:48:26.824Z",
+        "committedAt": "2026-11-01T21:48:26.835Z",
+        "result": null,
+        "assessments": [
+          {
+            "at": "2026-11-01T21:48:26.833Z",
+            "decision": "done",
+            "observed": "f05a1d117648d293f6e2f6c15ebabda56d9f86a3"
+          }
+        ]
+      }
+    }
+  },
+  "commit-then-crash": {
+    "status": 1,
+    "signal": null,
+    "stdout": "[worker] commit-then-crash: crashing before ledger.commit()",
+    "stderr": ""
+  },
+  "assess:commit-then-crash": "done",
+  "rev-list": "2",
+  "ledger:commit-then-crash": {
+    "version": 1,
+    "effects": {
+      "gc-crash": {
+        "key": "gc-crash",
+        "spec": {
+          "kind": "git_commit",
+          "parentSha": "a87d2030811e4377f72b585dad7553f0da360d3a",
+          "message": "s8: outbox commit"
+        },
+        "state": "committed",
+        "intendedAt": "2026-11-01T21:48:27.098Z",
+        "committedAt": "2026-11-01T21:48:27.653Z",
+        "result": {
+          "sha": "da46401b5f0a0900c5b7727565d9238270317296"
+        },
+        "assessments": [
+          {
+            "at": "2026-11-01T21:48:27.653Z",
+            "decision": "done",
+            "observed": "head=da46401b5f0a0900c5b7727565d9238270317296 sha=da46401b5f0a0900c5b7727565d9238270317296"
+          }
+        ]
+      }
+    }
+  }
+}
