@@ -1,0 +1,76 @@
+{
+  "steerMismatch": {
+    "code": -32600,
+    "message": "[s1b-steer] turn/steer: expected active turn id `turn-id-that-does-not-exist` but found `<thread-id>`"
+  },
+  "steerAccepted": {
+    "turnId": "<thread-id>"
+  },
+  "interrupt": {
+    "status": "interrupted",
+    "error": null,
+    "itemsAtInterrupt": []
+  },
+  "resume": {
+    "historyMode": "paginated",
+    "hasThreadTurns": true,
+    "initialTurnsPage": null,
+    "cursorTypes": [
+      "string",
+      "string"
+    ],
+    "turnCount": 1,
+    "turnStatuses": [
+      "completed"
+    ],
+    "itemTypes": [
+      "userMessage",
+      "agentMessage"
+    ],
+    "threadStatus": {
+      "type": "idle"
+    }
+  },
+  "fork": {
+    "differentId": true,
+    "forkedFromMatches": true
+  },
+  "idleRestartResume": {
+    "status": "completed",
+    "agentMessage": "> 한 단어로만 대답하세요: 안녕"
+  },
+  "activeKill": {
+    "exit": {
+      "code": null,
+      "signal": "SIGTERM",
+      "killed": true,
+      "elapsedMs": 22
+    }
+  },
+  "activeResume": {
+    "threadStatus": {
+      "type": "idle"
+    },
+    "interruptedTurnFound": true,
+    "interruptedTurnStatus": "interrupted",
+    "interruptedTurnItems": [
+      "userMessage"
+    ]
+  },
+  "activeResumeNewTurn": {
+    "status": "completed"
+  },
+  "queueAddWithoutOptIn": {
+    "code": -32600,
+    "message": "[s1b-queue] thread/queue/add: thread/queue/add requires experimentalApi capability"
+  },
+  "sigint": {
+    "platform": "win32",
+    "exit": {
+      "code": null,
+      "signal": "SIGINT",
+      "killed": true,
+      "elapsedMs": 11
+    }
+  }
+}
