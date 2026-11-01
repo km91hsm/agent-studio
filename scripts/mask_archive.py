@@ -16,6 +16,7 @@ import argparse
 import getpass
 import re
 import shutil
+import socket
 import sys
 from pathlib import Path
 
@@ -28,11 +29,15 @@ REMOVE = [
 PRIVATE_DIR = Path(r"D:\LLM\agent-studio-private\evidence")
 
 
-def mask_text(text: str, usernames: list[str]) -> tuple[str, int, int]:
+def mask_text(text: str, usernames: list[str], hostnames: list[str] = ()) -> tuple[str, int, int]:
     users = 0
     for name in usernames:
         users += text.count(name)
         text = text.replace(name, "<user>")
+    for host in hostnames:
+        if host:
+            users += text.count(host)
+            text = text.replace(host, "<host>")
     text, threads = THREAD_ID.subn("<thread-id>", text)
     return text, users, threads
 
@@ -42,8 +47,11 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--root", default="docs")
     ap.add_argument("--user", action="append", default=[], help="마스킹할 사용자명(반복 가능). 기본: 현재 로그인 사용자")
+    ap.add_argument("--host", action="append", default=[], help="마스킹할 호스트명(반복 가능). 기본: 현재 호스트명")
+    ap.add_argument("--no-remove", action="store_true", help="제거 대상 파일 처리를 건너뛴다(docs/reviews 등 재마스킹용)")
     args = ap.parse_args()
     usernames = args.user or [getpass.getuser()]
+    hostnames = args.host or [socket.gethostname()]
 
     rows: list[tuple[str, int, int]] = []
     total_u = total_t = 0
@@ -52,7 +60,7 @@ def main() -> int:
             continue
         raw = p.read_bytes()
         text = raw.decode("utf-8")
-        new, u, t = mask_text(text, usernames)
+        new, u, t = mask_text(text, usernames, hostnames)
         if u or t:
             rows.append((p.as_posix(), u, t))
             total_u += u
@@ -67,6 +75,8 @@ def main() -> int:
         print(f"| `{path}` | {u} | {t} |")
     print(f"| **합계 ({len(rows)} 파일)** | **{total_u}** | **{total_t}** |")
 
+    if args.no_remove:
+        return 0
     print("\n| 제거 파일 | 처리 |")
     print("|---|---|")
     for rel in REMOVE:

@@ -1,7 +1,7 @@
 {
  "call": "S1a_review",
  "purpose": "S1a 스파이크 교차 리뷰(읽기 전용)",
- "thread_id": "01a19839-914a-7671-8bc9-147b767ebd11",
+ "thread_id": "<thread-id>",
  "reasoning_effort": "high",
  "sandbox": "read-only",
  "started_at": "2026-11-01T17:47:51Z",
