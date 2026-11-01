@@ -1,6 +1,7 @@
-import { homedir, userInfo } from "node:os";
+import { homedir, hostname, userInfo } from "node:os";
 
 const THREAD_ID = /\b01[0-9a-f]{6}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}\b/g;
+const INSTALLATION_ID = /("installationId"\s*:\s*")[^"]+(")/g;
 const TOKENS = /\b(ghp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9]{32,}|xox[abp]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{16})\b/g;
 
 /** 녹화 픽스처 커밋 전 마스킹: 홈 경로·사용자명·thread id·토큰 패턴. */
@@ -13,5 +14,7 @@ export function mask(text: string): string {
     out = out.split(h).join("<home>");
   }
   if (user) out = out.split(user).join("<user>");
-  return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>");
+  const host = hostname();
+  if (host) out = out.split(host).join("<host>");
+  return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>").replace(INSTALLATION_ID, "$1<installation-id>$2");
 }
