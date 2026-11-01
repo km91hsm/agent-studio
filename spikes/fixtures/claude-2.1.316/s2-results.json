@@ -1,0 +1,173 @@
+{
+  "deny": {
+    "executable": "<home>\\.local\\bin\\claude.exe",
+    "resultSubtype": "success",
+    "askedTools": [
+      "Edit"
+    ],
+    "hookedTools": [
+      "Read",
+      "Edit"
+    ],
+    "assistantToolUseNames": [
+      "Read",
+      "Edit"
+    ],
+    "permissionDenials": [
+      {
+        "tool_name": "Edit",
+        "tool_use_id": "toolu_01TaEFWKDzyccAdYNB9cym7M",
+        "tool_input": {
+          "file_path": "<home>\\AppData\\Local\\Temp\\s2-deny-37yrl5\\README.md",
+          "old_string": "에이전트 실호출은 이 저장소의 임시 복사본에서만 수행한다.\n",
+          "new_string": "에이전트 실호출은 이 저장소의 임시 복사본에서만 수행한다.\nspike-s2\n",
+          "replace_all": false
+        }
+      }
+    ],
+    "status": []
+  },
+  "plan": {
+    "resultSubtype": "success",
+    "hookedTools": [
+      "Read",
+      "Write",
+      "ToolSearch",
+      "ExitPlanMode"
+    ],
+    "askedTools": [
+      "ExitPlanMode:deny"
+    ],
+    "planFileWritesWithoutCanUseTool": 1,
+    "planFileWriteCount": 1,
+    "shellCommandsHooked": [],
+    "status": [],
+    "finalText": "README.md를 읽고 계획(`<home>\\.claude\\plans\\readme-md-cheeky-wave.md`)을 작성했으나, 플랜 모드 종료가 거부되어(`spike: stay in plan mode`) README.md에 `spike-s2` 줄 추가는 아직 실행하지 못했습니다 — 플랜 모드가 해제되면 바로 적용하겠습니다."
+  },
+  "acceptEdits": {
+    "resultSubtype": "success",
+    "hookedTools": [
+      "Read",
+      "Edit"
+    ],
+    "askedTools": [],
+    "toolsWithoutCanUseTool": [
+      "Read",
+      "Edit"
+    ],
+    "status": [
+      " M README.md"
+    ]
+  },
+  "interrupt": {
+    "receipt": {
+      "still_queued": []
+    },
+    "interruptMs": 6,
+    "resultSubtype": "error_during_execution",
+    "isError": true,
+    "numTurns": 2,
+    "messagesAfterInterrupt": [
+      "assistant",
+      "stream_event",
+      "stream_event",
+      "stream_event",
+      "stream_event",
+      "stream_event",
+      "stream_event",
+      "user",
+      "stream_event",
+      "stream_event",
+      "result"
+    ]
+  },
+  "sessions": {
+    "projectDir": "<home>\\.claude\\projects\\C--Users-<user>-AppData-Local-Temp-s2-sessions-O1xfpy",
+    "listed": [
+      {
+        "sessionId": "0e6b2427-9afe-438a-9578-2686ce298caa",
+        "summary": "한 단어 응답 요청"
+      }
+    ],
+    "containsCurrent": true,
+    "forkedIsNew": true,
+    "forkedListed": true
+  },
+  "mcp": {
+    "strict": {
+      "mcpServers": [],
+      "mcpTools": [],
+      "toolCount": 31,
+      "plugins": [
+        "cowork-plugin-management",
+        "design",
+        "cc-plugin-agents-md",
+        "cc-plugin-telemetry",
+        "cc-plugin-plugin-authoring"
+      ],
+      "skills": 89
+    },
+    "default": {
+      "mcpServers": [
+        {
+          "name": "plugin:design:slack",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:figma",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:linear",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:atlassian",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:notion",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:intercom",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:google calendar",
+          "status": "failed",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:design:gmail",
+          "status": "failed",
+          "source": "plugin"
+        }
+      ],
+      "mcpTools": [],
+      "toolCount": 31,
+      "plugins": [
+        "cowork-plugin-management",
+        "design",
+        "cc-plugin-agents-md",
+        "cc-plugin-telemetry",
+        "cc-plugin-plugin-authoring"
+      ],
+      "skills": 89
+    }
+  },
+  "auth": {
+    "apiKeyEnvPresent": false,
+    "apiKeySource": "none",
+    "claudeCodeVersion": "2.1.316",
+    "model": "claude-fable-5-1",
+    "resultSubtype": "success",
+    "homeClaudeDirExists": true
+  }
+}
