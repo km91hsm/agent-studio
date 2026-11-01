@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
+  getSessionMessages,
   forkSession,
   listSessions,
   query,
@@ -29,13 +30,14 @@ import {
   type McpServerConfig,
 } from "@anthropic-ai/claude-agent-sdk";
 
-export { forkSession, listSessions };
+export { forkSession, getSessionMessages, listSessions };
 
 /** Claude Code 내장 도구 중 파일·셸 부작용을 내는 것(REQ-CAP-02 판정용) */
 export const WRITE_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit", "Bash", "PowerShell"]);
 
 export function detectClaudeExecutable(): string {
-  if (process.env.CLAUDE_BIN) return process.env.CLAUDE_BIN;
+  // 리뷰 #10: CLAUDE_BIN 은 존재할 때만 신뢰한다(없으면 다음 후보로)
+  if (process.env.CLAUDE_BIN && existsSync(process.env.CLAUDE_BIN)) return process.env.CLAUDE_BIN;
   const local = join(homedir(), ".local", "bin", process.platform === "win32" ? "claude.exe" : "claude");
   if (existsSync(local)) return local;
   try {
@@ -86,11 +88,15 @@ export interface PreToolUseSeen {
   tool_use_id: string;
 }
 
-class PushIterable<T> implements AsyncIterable<T> {
+export class PushIterable<T> implements AsyncIterable<T> {
   private queue: T[] = [];
   private waiters: ((r: IteratorResult<T>) => void)[] = [];
   private closed = false;
+  get isClosed() {
+    return this.closed;
+  }
   push(v: T) {
+    if (this.closed) throw new Error("PushIterable: push after close"); // 리뷰 #7
     const w = this.waiters.shift();
     if (w) w({ value: v, done: false });
     else this.queue.push(v);
@@ -123,8 +129,10 @@ export class ClaudeRun {
   private resultPromise: Promise<SDKResultMessage>;
   private resolveResult!: (r: SDKResultMessage) => void;
   private rejectResult!: (e: unknown) => void;
-  private listeners: { pred: (m: SDKMessage) => boolean; resolve: (m: SDKMessage) => void }[] = [];
+  private listeners: { pred: (m: SDKMessage) => boolean; resolve: (m: SDKMessage) => void; reject: (e: unknown) => void }[] = [];
   private sessionIdValue?: string;
+  /** 턴별 결과(리뷰 #7: 첫 결과 Promise 하나로 여러 턴을 표현하지 않는다) */
+  readonly results: SDKResultMessage[] = [];
 
   constructor(private readonly opts: ClaudeRunOpts) {
     this.label = opts.label;
@@ -173,6 +181,7 @@ export class ClaudeRun {
   }
 
   send(text: string) {
+    if (this.input.isClosed) throw new Error(`[${this.label}] send after close`);
     this.input.push({ type: "user", message: { role: "user", content: text }, parent_tool_use_id: null, session_id: this.sessionIdValue ?? "" } as SDKUserMessage);
   }
 
@@ -181,15 +190,29 @@ export class ClaudeRun {
       for await (const msg of this.q as Query) {
         this.events.push({ t: Date.now(), msg });
         if (msg.type === "system" && msg.subtype === "init") this.sessionIdValue = msg.session_id;
-        if (msg.type === "result") this.resolveResult(msg);
+        if (msg.type === "result") {
+          this.results.push(msg);
+          this.resolveResult(msg);
+        }
         for (const l of this.listeners.splice(0)) {
           if (l.pred(msg)) l.resolve(msg);
           else this.listeners.push(l);
         }
       }
+      // 리뷰 #7: 결과 없이 스트림이 끝나면 대기자를 확정한다
+      const ended = new Error(`[${this.label}] stream ended (results=${this.results.length})`);
+      if (this.results.length === 0) this.rejectResult(ended);
+      for (const l of this.listeners.splice(0)) l.reject(ended);
     } catch (e) {
       this.rejectResult(e);
+      for (const l of this.listeners.splice(0)) l.reject(e);
     }
+  }
+
+  /** n번째(1부터) 턴 결과를 기다린다. */
+  nthResult(n: number, timeoutMs = 120_000): Promise<SDKResultMessage> {
+    if (this.results.length >= n) return Promise.resolve(this.results[n - 1]);
+    return this.waitFor((m) => m.type === "result" && this.results.length >= n, timeoutMs) as Promise<SDKResultMessage>;
   }
 
   result(): Promise<SDKResultMessage> {
@@ -206,6 +229,10 @@ export class ClaudeRun {
         resolve: (m) => {
           clearTimeout(timer);
           resolve(m);
+        },
+        reject: (e) => {
+          clearTimeout(timer);
+          reject(e);
         },
       });
     });
@@ -256,9 +283,12 @@ export class ClaudeRun {
   async close(): Promise<void> {
     this.input.close();
     if (!this.q) return;
-    const done = this.loop ?? Promise.resolve();
-    const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 15_000));
-    if ((await Promise.race([done, timeout])) === "timeout") this.q.close();
-    await this.loop?.catch(() => undefined);
+    const done = (this.loop ?? Promise.resolve()).catch(() => undefined);
+    const after = (ms: number) => new Promise<"timeout">((r) => setTimeout(() => r("timeout"), ms));
+    if ((await Promise.race([done, after(15_000)])) === "timeout") {
+      this.q.close();
+      // 리뷰 #7: 강제 종료 뒤에도 대기 상한을 둔다
+      await Promise.race([done, after(5_000)]);
+    }
   }
 }
