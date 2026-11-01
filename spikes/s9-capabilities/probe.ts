@@ -1,7 +1,7 @@
 /**
  * S9 — 기능 상속 탐침 (REQ-CAP-01~09 × {claude, codex}) — MASTER Task S9, AGENT_INTEGRATION §7, PRODUCT §13A, V31, R18.
  * 산출: `CapabilityProbeResult[]`(18행) — 각 행은 status(supported/conditional/unsupported) + reached(발견→기동→실행→산출물 4단계 중 도달점) + evidence.
- * 원칙: 사용자 CODEX_HOME 은 읽기 전용(`-c` 오버라이드·임시 CODEX_HOME 만), 실호출은 임시 샘플 저장소에서만, 승인 요청은 저장소 밖이면 거부,
+ * 원칙: 사용자 CODEX_HOME 은 읽기 전용(`-c` 오버라이드·임시 CODEX_HOME 만), 실호출은 임시 샘플 저장소에서만, 승인 요청은 **전부 거부**(Codex 리뷰 #6 — 경로 추출 기반 자동 허용은 보장이 아님),
  *       computer-use 는 캡처·입력을 **금지**한 상태로 기동만 시도한다. 결과 값(status)은 테스트가 단언하지 않는다 — S9 는 결정 게이트 입력이다.
  */
 import { execFileSync, spawnSync } from "node:child_process";
@@ -11,7 +11,6 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AppServerClient, type ApprovalPolicy, type SandboxPolicy, type ServerRequest, type UserInput } from "../s1-codex-app-server/client.js";
 import { ClaudeRun, type ClaudeRunOpts } from "../s2-claude-sdk/run.js";
-import { approvalDecision } from "../s7-skills/experiments.js";
 import { createSampleRepo } from "../_shared/sampleRepo.js";
 import { mask } from "../_shared/mask.js";
 
@@ -53,6 +52,35 @@ export function validateResults(results: CapabilityProbeResult[]): string[] {
   return errors;
 }
 
+/** 최소 MCP stdio 서버(탐침 전용) — `-c mcp_servers.s9_probe` 로 주입해 핸드셰이크·도구 노출을 관찰한다 */
+export const MCP_PROBE_SERVER = fileURLToPath(new URL("./mcp-probe-server.mjs", import.meta.url));
+
+/** CAP-08 reached 도출 규칙(Codex 리뷰 #3): 목록에 이름이 있는 것은 '발견'이고, 핸드셰이크가 끝나 도구가 노출되고 오류가 없어야 '기동'이다 */
+export function mcpReached(row: { tools: number; toolsError: unknown } | null | undefined): "started" | "discovered" {
+  return row && row.tools > 0 && (row.toolsError === null || row.toolsError === undefined) ? "started" : "discovered";
+}
+
+/** 탐침의 승인 정책(Codex 리뷰 #6): 저장소 안 경로·읽기 명령이라도 **전부 거부** — 탐침은 가용성만 보며 효과를 내지 않는다 */
+export function decideApproval(_params: unknown, _cwd: string): "decline" {
+  void _params;
+  void _cwd;
+  return "decline";
+}
+
+/** 유효 설정 상속 비교(Codex 리뷰 #4, AGENT_INTEGRATION §7 CAP-09 `notify`/hooks): 값(경로·명령)은 남기지 않고 형태와 동일 여부만 기록한다 */
+export function configInheritance(shared: Record<string, unknown>, isolated: Record<string, unknown>, keys: string[] = ["notify", "hooks", "mcp_servers", "plugins", "marketplaces", "model_provider", "sandbox_mode", "approval_policy"]): Record<string, { shared: string; isolated: string; inherited: boolean }> {
+  const shape = (v: unknown): string => {
+    if (v === undefined) return "absent";
+    if (v === null) return "null";
+    if (Array.isArray(v)) return `array(${v.length})`;
+    if (typeof v === "object") return `object(${Object.keys(v as object).length})`;
+    return typeof v;
+  };
+  const out: Record<string, { shared: string; isolated: string; inherited: boolean }> = {};
+  for (const k of keys) out[k] = { shared: shape(shared[k]), isolated: shape(isolated[k]), inherited: JSON.stringify(shared[k] ?? null) === JSON.stringify(isolated[k] ?? null) };
+  return out;
+}
+
 // ───────────────────────────── LIVE 탐침 ─────────────────────────────
 
 export interface ProbeUsage {
@@ -80,6 +108,8 @@ interface DiscoverySummary {
   mcp: { count: number; rows: McpRow[]; snapshots: number; settledAfterMs: number; snapshotSizes: number[] } | { error: string };
   config: { keys: string[]; computer_use: unknown; browser_use: unknown; apps: unknown; layers: Json[] } | { error: string };
   features: { count: number; enabled: string[] } | { error: string };
+  /** config/read 의 유효 설정 원본 — 값에 경로가 있으므로 raw 에는 싣지 않고(strip) 형태 비교(configInheritance)에만 쓴다 */
+  effective: Json;
   skillPath: (name: string) => string | undefined;
 }
 async function safe<T>(fn: () => Promise<T>): Promise<Safe<T>> {
@@ -196,6 +226,7 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
         mcp: mcp.ok ? { count: mcpRows.length, rows: mcpRows, snapshots: mcpSnapshots.length, settledAfterMs: Date.now() - mcpT0, snapshotSizes: mcpSnapshots.map((s) => s.length) } : { error: mcp.error },
         config: config.ok ? { keys: Object.keys(cfgObj).sort(), computer_use: cfgObj.computer_use ?? null, browser_use: cfgObj.browser_use ?? null, apps: cfgObj.apps ?? null, layers: ((cfg.layers as Json[]) ?? []).map((l) => pick(l, ["name", "source", "version"])) } : { error: config.error },
         features: features.ok ? { count: (((features.value as Json).data as Json[]) ?? []).length, enabled: (((features.value as Json).data as Json[]) ?? []).filter((f) => f.enabled).map((f) => String(f.name)).sort() } : { error: features.error },
+        effective: cfgObj,
         skillPath: (name: string) => skillRows.find((s) => s.name === name)?.path as string | undefined,
       };
       writeRecording(`codex-${versions.codex}/s9-codex-${label}.jsonl`, client.recording());
@@ -205,8 +236,8 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
     }
   }
 
-  // ── Codex: 1턴 실행(스킬 주입, 샌드박스·승인 정책 지정, 저장소 밖 승인은 거부) ──
-  async function codexTurn(label: string, o: { input: UserInput[]; sandboxPolicy: SandboxPolicy; approvalPolicy: ApprovalPolicy; declineAll?: boolean; timeoutMs?: number }) {
+  // ── Codex: 1턴 실행(스킬 주입, 샌드박스·승인 정책 지정, 승인 요청은 전부 거부) ──
+  async function codexTurn(label: string, o: { input: UserInput[]; sandboxPolicy: SandboxPolicy; approvalPolicy: ApprovalPolicy; timeoutMs?: number }) {
     const client = new AppServerClient({ label, configOverrides: ["features.memories=false"], requestTimeoutMs: 120_000 });
     const items: Json[] = [];
     const serverRequests: Json[] = [];
@@ -214,7 +245,7 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
     try {
       client.onServerRequest((req: ServerRequest) => {
         serverRequests.push({ method: req.method, params: JSON.stringify(req.params).slice(0, 400) });
-        if (req.method.endsWith("/requestApproval")) client.respond(req.id, { decision: o.declineAll ? "decline" : approvalDecision(req.params, repo.dir) });
+        if (req.method.endsWith("/requestApproval")) client.respond(req.id, { decision: decideApproval(req.params, repo.dir) });
         else client.respondError(req.id, -32601, `s9 probe does not handle ${req.method}`);
       });
       client.onNotification("item/completed", (n) => {
@@ -275,17 +306,18 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
 
     push({ cap: "CAP-01", agent: "claude", status: "supported", reached: "executed", evidence: `S2 plan(permissionMode:'plan'): hookedTools=${JSON.stringify(s2plan.hookedTools)}, askedTools=${JSON.stringify(s2plan.askedTools)}, 저장소 변경=${JSON.stringify(s2plan.status)}(없음), planFileWritesWithoutCanUseTool=${s2plan.planFileWritesWithoutCanUseTool}(플랜 파일은 ~/.claude/plans); 종료 허용 시 쓰기 재개(planExitAllowed.writesInCwdAfterExit=${JSON.stringify((s2.planExitAllowed as Json).writesInCwdAfterExit)}). 픽스처 s2-plan.jsonl·s2-plan-exit-allowed.jsonl` });
     push({ cap: "CAP-02", agent: "claude", status: "conditional", reached: "executed", condition: "모드 자체는 동작(acceptEdits 에서 Edit 가 canUseTool 없이 실행). 격리 보장 수준은 SECURITY §2.1(S4: Claude native 는 '정책만' — 샌드박스 아님) → 옵트인 시 경고 배지(U8)", evidence: `S2 acceptEdits: writeToolsWithoutCanUseTool=${JSON.stringify(s2accept.writeToolsWithoutCanUseTool)}, unverifiedWriteTools=${JSON.stringify(s2accept.unverifiedWriteTools)}, status=${JSON.stringify(s2accept.status)}; S2 deny: permissionDenials=${((s2deny.permissionDenials as unknown[]) ?? []).length}건(Edit 거부 → 무변경); S4 claude native 격리 실측=${JSON.stringify(s4summary("claude"))}, 보장 수준 하향=${JSON.stringify(s4downgrades.filter((d) => d.startsWith("claude")))}` });
-    push({ cap: "CAP-03", agent: "claude", status: "supported", reached: "executed", evidence: `init.tools(${cDefault.tools.length})에 Read/Edit/Write/NotebookEdit/Glob/Grep 포함=${["Read", "Edit", "Write", "NotebookEdit", "Glob", "Grep"].every((t) => cDefault.tools.includes(t))}; S2 deny/acceptEdits 에서 Read→Edit 실행(assistantToolUseNames=${JSON.stringify(s2deny.assistantToolUseNames)}). PDF/이미지 읽기는 Read 도구 내장(pages 인자) — 실측은 V1` });
+    push({ cap: "CAP-03", agent: "claude", status: "conditional", reached: "executed", condition: "일반 파일 읽기·편집은 내장 도구로 실행 확인(S2). 요구에 포함된 PDF(Read `pages`)·이미지 읽기는 **미실측** → V1(AC-V1-6)에서 판정(리뷰 #5)", evidence: `init.tools(${cDefault.tools.length})에 Read/Edit/Write/NotebookEdit/Glob/Grep 포함=${["Read", "Edit", "Write", "NotebookEdit", "Glob", "Grep"].every((t) => cDefault.tools.includes(t))}; S2 deny/acceptEdits 에서 Read→Edit 실행(assistantToolUseNames=${JSON.stringify(s2deny.assistantToolUseNames)}). PDF/이미지 읽기는 Read 도구 내장(pages 인자) — 실측은 V1` });
     push({ cap: "CAP-04", agent: "claude", status: "conditional", reached: "discovered", condition: "synced 스킬(anthropic-skills:docx/xlsx/pptx/pdf/docs)이 init.skills 에 노출됨(사용자 설정 소스). 문서 생성 실행·산출물 재열기 검증은 V1(AC-V1-7); settingSources:[] 격리 모드에서는 노출 여부가 아래 수치대로 바뀜", evidence: `init.skills default=${cDefault.skills.length}개(synced 문서 스킬: ${JSON.stringify(synced(cDefault.skills))}); settingSources:[] → ${cIsolated.skills.length}개(synced: ${JSON.stringify(synced(cIsolated.skills))}); Skill 도구 노출=${cDefault.tools.includes("Skill")}` });
     push({ cap: "CAP-05", agent: "claude", status: "unsupported", reached: "discovered", evidence: `init.tools(${cDefault.tools.length})·skills(${cDefault.skills.length})·mcp_servers(${cDefault.mcpServers.length}) 어디에도 이미지 생성 도구/스킬 없음(/imag/ 일치: tools=${JSON.stringify(cDefault.tools.filter((t) => /imag/i.test(t)))}, skills=${JSON.stringify(cDefault.skills.filter((s) => /imag/i.test(s)))}). 1단 불가 → Codex 라우팅 또는 2단 API(CAP-08)` });
     push({ cap: "CAP-06", agent: "claude", status: "conditional", reached: chromeTools.length ? "started" : "discovered", condition: "CLI --chrome 플래그는 SDK Options.extraArgs {chrome:null} 로 전달 가능. 실제 브라우저 조작은 Chrome 확장(Claude in Chrome) 설치·연결 전제 — 이 탐침은 브라우저를 조작하지 않음(노출만 관찰)", evidence: `extraArgs {chrome:null} 세션: 브라우저 관련 tools/mcp=${JSON.stringify(chromeTools)} (기본 세션: ${JSON.stringify(chromeToolsDefault)}); synced 스킬 chrome-browser/built-in-browser=${JSON.stringify(cDefault.skills.filter((s) => /browser/.test(s)))}; agent-browser 스킬 노출=${cDefault.skills.includes("agent-browser")}; resultSubtype=${cChrome.resultSubtype}` });
-    push({ cap: "CAP-07", agent: "claude", status: "conditional", reached: "discovered", condition: "synced computer-use 스킬은 Desktop 앱의 mcp__computer-use__* 도구 전제 — 헤드리스 init.tools 에 computer-use 도구 없음 → 2단(Agent Studio MCP 도구 서버) 전용", evidence: `init.skills 에 anthropic-skills:computer-use=${cDefault.skills.includes("anthropic-skills:computer-use")}; init.tools 중 /computer|screen|mouse|keyboard/=${JSON.stringify(cDefault.tools.filter((t) => /computer|screen|mouse|keyboard/i.test(t)))}; mcp_servers=${JSON.stringify(cDefault.mcpServers.map((m) => m.name))}` });
+    push({ cap: "CAP-07", agent: "claude", status: "conditional", reached: "discovered", condition: "synced computer-use 스킬은 Desktop 앱의 mcp__computer-use__* 도구 전제 — 헤드리스 init.tools 에 computer-use 도구 없음(실측). '2단(Agent Studio MCP 도구 서버) 전용'은 실측 결론이 아니라 제품 정책 제안(리뷰 #2)", evidence: `init.skills 에 anthropic-skills:computer-use=${cDefault.skills.includes("anthropic-skills:computer-use")}; init.tools 중 /computer|screen|mouse|keyboard/=${JSON.stringify(cDefault.tools.filter((t) => /computer|screen|mouse|keyboard/i.test(t)))}; mcp_servers=${JSON.stringify(cDefault.mcpServers.map((m) => m.name))}` });
     push({ cap: "CAP-08", agent: "claude", status: "conditional", reached: /connected/.test(JSON.stringify(s2mcp)) ? "started" : "discovered", condition: "SDK Options.mcpServers 로 앱 MCP 서버 주입 가능(S2 실측); 도구 서버 자체는 V1 P10b T9 구현·TEST-SE-10", evidence: `S2 mcp: default=${JSON.stringify(pick(s2mcp.default, ["toolCount", "skills"]))} mcpServers=${((s2mcp.default as Json)?.mcpServers as unknown[] | undefined)?.length ?? 0}개(plugin 출처), strict=${JSON.stringify(pick(s2mcp.strict, ["toolCount", "mcpServers"]))}; 이번 세션 mcp_servers=${JSON.stringify(cDefault.mcpServers.map((m) => `${m.name}:${m.status}`))}` });
     push({ cap: "CAP-09", agent: "claude", status: "conditional", reached: "discovered", condition: "Codex 전용 요구(CODEX_HOME). Claude 대응물 = settingSources('user')로 ~/.claude 공유 — 기본은 전부 로드, [] 로 격리", evidence: `settingSources 생략: skills=${cDefault.skills.length}, plugins=${cDefault.plugins.length}, mcp=${cDefault.mcpServers.length}; settingSources:[]: skills=${cIsolated.skills.length}, plugins=${cIsolated.plugins.length}, mcp=${cIsolated.mcpServers.length}` });
 
     // ── (c)(g) Codex 발견: 공유 CODEX_HOME / 공유 + -c mcp_servers 오버라이드(V31) / 임시 분리 CODEX_HOME ──
     const shared = await codexDiscovery("shared", {});
-    const overridden = await codexDiscovery("shared-mcp-override", { overrides: ['mcp_servers.s9_probe={command="node",args=["-e","setTimeout(()=>{},2000)"]}'] });
+    // 실제 핸드셰이크가 되는 최소 MCP 서버를 주입한다(리뷰 #3) — TOML basic string 이므로 경로는 슬래시로
+    const overridden = await codexDiscovery("shared-mcp-override", { overrides: [`mcp_servers.s9_probe={command="node",args=[${JSON.stringify(MCP_PROBE_SERVER.replace(/\\/g, "/"))}]}`] });
     const isolated = await codexDiscovery("isolated-home", { env: { CODEX_HOME: scratchHome } });
     raw.codex = { shared: strip(shared), sharedMcpOverride: strip(overridden), isolatedHome: strip(isolated) };
     const names = (d: typeof shared) => ("rows" in d.mcp ? d.mcp.rows.map((r) => String(r.name)).sort() : []);
@@ -296,7 +328,10 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
     const userMcpNames = readUserMcpServerNames();
     const v31ConfigRetained = userMcpNames.filter((n) => names(overridden).includes(n));
     const mcpSettle = (d: typeof shared) => ("snapshots" in d.mcp ? `${d.mcp.snapshots}회/${d.mcp.settledAfterMs}ms 크기 ${JSON.stringify(d.mcp.snapshotSizes)}` : "n/a");
-    raw.v31 = { userMcpNames, sharedNames: names(shared), overriddenNames: names(overridden), removed: v31Removed, configRetained: v31ConfigRetained, settle: { shared: mcpSettle(shared), overridden: mcpSettle(overridden) } };
+    const probeRow = "rows" in overridden.mcp ? overridden.mcp.rows.find((r) => r.name === "s9_probe") : undefined;
+    const inheritance = configInheritance(shared.effective, isolated.effective);
+    raw.v31 = { userMcpNames, sharedNames: names(shared), overriddenNames: names(overridden), removed: v31Removed, configRetained: v31ConfigRetained, probeRow: probeRow ?? null, settle: { shared: mcpSettle(shared), overridden: mcpSettle(overridden) } };
+    raw.codexInheritance = inheritance;
 
     // ── (c-exec) CAP-04 Codex: documents 스킬 주입 → hello.docx 산출 ──
     const docSkill = shared.skillPath("documents:documents");
@@ -323,7 +358,7 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
     // ── (e) CAP-07 Codex: computer-use 스킬 주입, readOnly, 캡처·입력 금지 지시, 승인 전부 거부 ──
     const cuSkill = shared.skillPath("computer-use:computer-use");
     const cu = cuSkill
-      ? await codexTurn("computer-use", { input: [{ type: "skill", name: "computer-use:computer-use", path: cuSkill }, { type: "text", text: "Report whether the computer-use capability is available in this session: which tool or plugin provides it and its current status. Do NOT take any screenshot, do NOT click, type, move the mouse, open or focus any application, or control the computer in any way. If checking availability requires any of those actions, do not do it — just report that. Reply in one short paragraph." }], sandboxPolicy: { type: "readOnly" }, approvalPolicy: "on-request", declineAll: true, timeoutMs: 4 * 60_000 })
+      ? await codexTurn("computer-use", { input: [{ type: "skill", name: "computer-use:computer-use", path: cuSkill }, { type: "text", text: "Report whether the computer-use capability is available in this session: which tool or plugin provides it and its current status. Do NOT take any screenshot, do NOT click, type, move the mouse, open or focus any application, or control the computer in any way. If checking availability requires any of those actions, do not do it — just report that. Reply in one short paragraph." }], sandboxPolicy: { type: "readOnly" }, approvalPolicy: "on-request", timeoutMs: 4 * 60_000 })
       : null;
     raw.codexComputerUse = { skillPath: cuSkill ? mask(cuSkill) : null, turn: cu, desktopProcesses: raw.codexDesktopProcesses };
 
@@ -334,13 +369,13 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
 
     push({ cap: "CAP-01", agent: "codex", status: "supported", reached: "executed", evidence: `S1a readOnly 녹화(s1a-readOnly.jsonl): fileChange=${s1aFileChanges}건, commandExecution=${s1aCommands}건, requestApproval=${s1aApprovals}건 → 무단 변경 0; S1c readOnly 행: ${JSON.stringify(readOnlyFx)}; sandboxPolicy{type:"readOnly"} 는 turn/start 에서 수락됨(이번 computer-use 턴 status=${cu?.turnStatus ?? "n/a"})` });
     push({ cap: "CAP-02", agent: "codex", status: "supported", reached: "executed", evidence: `S1c workspaceWrite+approvalPolicy never: ${JSON.stringify(neverFx)}; S4 codex 격리 실측(workspaceWrite elevated, 검증된 variant): ${JSON.stringify(s4summary("codex"))}, 보장 수준 하향=${JSON.stringify(s4downgrades.filter((d) => d.startsWith("codex")))}; 이번 documents 턴 approvalPolicy on-request 서버 요청=${docx?.serverRequests.length ?? 0}건` });
-    push({ cap: "CAP-03", agent: "codex", status: "supported", reached: "executed", evidence: `내장 파일·명령 도구: S1c file-write/shell-command 실행(위 CAP-02 행), 이번 documents 턴 itemTypes=${JSON.stringify(docx?.itemTypes ?? {})}; 플러그인 pdf@openai-primary-runtime 노출=${codexPlugins.some((p) => p.startsWith("pdf@"))}, skills/list 에 pdf:pdf=${skillNames(shared).includes("pdf:pdf")} (플러그인 경로는 conditional — 실행 미실측)` });
+    push({ cap: "CAP-03", agent: "codex", status: "conditional", reached: "executed", condition: "일반 파일·명령은 내장 도구로 실행 확인(S1c·documents 턴). PDF 읽기 플러그인(pdf@openai-primary-runtime)은 노출만 확인, 실행 **미실측** → V1(리뷰 #5)", evidence: `내장 파일·명령 도구: S1c file-write/shell-command 실행(위 CAP-02 행), 이번 documents 턴 itemTypes=${JSON.stringify(docx?.itemTypes ?? {})}; 플러그인 pdf@openai-primary-runtime 노출=${codexPlugins.some((p) => p.startsWith("pdf@"))}, skills/list 에 pdf:pdf=${skillNames(shared).includes("pdf:pdf")} (플러그인 경로는 conditional — 실행 미실측)` });
     push({ cap: "CAP-04", agent: "codex", status: "conditional", reached: docxValid ? "artifact" : docx && docx.items.length ? "executed" : docSkill ? "started" : "discovered", condition: "documents@openai-primary-runtime 플러그인(공유 CODEX_HOME 에 설치·활성)과 ChatGPT 로그인 전제; 분리 CODEX_HOME 에서는 노출되지 않음(아래 CAP-09)", evidence: `documents:documents 스킬 주입 턴: status=${docx?.turnStatus ?? "skill-not-listed"}, error=${docx?.turnError ?? null}, itemTypes=${JSON.stringify(docx?.itemTypes ?? {})}, ${docx?.durationMs ?? 0}ms; hello.docx exists=${!!docxBuf} bytes=${docxBuf?.length ?? 0} zip+word/document.xml=${docxValid}; 최종 메시지: ${(docx?.finalText ?? "").slice(0, 200)}` });
     push({ cap: "CAP-05", agent: "codex", status: "conditional", reached: pngValid ? "artifact" : img && img.items.length ? "executed" : imgSkill ? "started" : "discovered", condition: `ChatGPT 로그인 모드 실측(아래). OPENAI_API_KEY 모드는 키 미보유로 미실측(openaiApiKeyPresent=${!!process.env.OPENAI_API_KEY}); image_generation 피처 플래그 stable`, evidence: `imagegen 스킬 주입 턴: status=${img?.turnStatus ?? "skill-not-listed"}, error=${img?.turnError ?? null}, itemTypes=${JSON.stringify(img?.itemTypes ?? {})}, ${img?.durationMs ?? 0}ms; circle.png exists=${!!pngBuf} bytes=${pngBuf?.length ?? 0} PNG 헤더=${pngValid}; 최종 메시지: ${(img?.finalText ?? "").slice(0, 200)}` });
     push({ cap: "CAP-06", agent: "codex", status: "conditional", reached: "discovered", condition: "browser@openai-bundled·chrome@openai-bundled 플러그인은 공유 CODEX_HOME 에 설치·활성(Desktop 앱 번들); 헤드리스 도구 호출은 미실측(브라우저 조작 금지 원칙) → V1 P10b T9 에서 agent-browser 2단과 비교", evidence: `plugin/installed: ${JSON.stringify(codexPlugins.filter((p) => /browser|chrome/.test(p)))}; config.browser_use=${JSON.stringify("browser_use" in shared.config ? shared.config.browser_use : null)}; features enabled 중 browser_*=${JSON.stringify("enabled" in shared.features ? shared.features.enabled.filter((f) => /browser/.test(f)) : [])}; 분리 CODEX_HOME 플러그인=${JSON.stringify(pluginIds(isolated).filter((p) => /browser|chrome/.test(p)))}` });
-    push({ cap: "CAP-07", agent: "codex", status: "conditional", reached: cu && mcpCalls(cu).length ? "started" : cuSkill ? "discovered" : "discovered", condition: `computer-use@openai-bundled 는 node_repl MCP 훅 + Desktop 앱 전제(Desktop 프로세스 ${(raw.codexDesktopProcesses as string[]).length ? "실행 중: " + JSON.stringify(raw.codexDesktopProcesses) : "미실행"}); 캡처·입력 금지 지시 하에 기동만 시도 → 2단 전용 원칙 유지(3단 스크립트 금지)`, evidence: `computer-use:computer-use 스킬 주입(readOnly, 승인 전부 거부): status=${cu?.turnStatus ?? "skill-not-listed"}, error=${cu?.turnError ?? null}, itemTypes=${JSON.stringify(cu?.itemTypes ?? {})}, MCP/tool 아이템=${JSON.stringify(mcpCalls(cu).map((i) => pick(i, ["type", "server", "tool", "status", "error"]))).slice(0, 300)}, 승인요청=${cu?.serverRequests.length ?? 0}; config.computer_use=${JSON.stringify("computer_use" in shared.config ? shared.config.computer_use : null).slice(0, 120)}; 최종 메시지: ${(cu?.finalText ?? "").slice(0, 200)}` });
-    push({ cap: "CAP-08", agent: "codex", status: "conditional", reached: names(overridden).includes("s9_probe") ? "started" : "discovered", condition: "-c mcp_servers.<name> 오버라이드로 앱 MCP 도구 서버 주입 가능(config.toml 무수정); 도구 서버 자체는 V1 P10b T9", evidence: `-c 'mcp_servers.s9_probe={…}' → mcpServerStatus/list 에 s9_probe 등장=${names(overridden).includes("s9_probe")} (rows=${JSON.stringify(names(overridden))}); V31: config.toml [mcp_servers.*] ${userMcpNames.length}개 중 오버라이드 뒤 유지=${v31ConfigRetained.length}개(${JSON.stringify(v31ConfigRetained)}); 전체 집합 차이(공유−오버라이드)=${JSON.stringify(v31Removed)} — 목록은 ${mcpSettle(shared)} / ${mcpSettle(overridden)} 폴링으로 안정화한 스냅숏` });
-    push({ cap: "CAP-09", agent: "codex", status: "supported", reached: "executed", evidence: `공유 CODEX_HOME: skills=${skillNames(shared).length}(${JSON.stringify("byScope" in shared.skills ? shared.skills.byScope : {})}), plugins installed=${codexPlugins.length}, mcp=${JSON.stringify(names(shared))}, config layers=${JSON.stringify("layers" in shared.config ? shared.config.layers.map((l) => l.name ?? l.source) : [])}; 분리 CODEX_HOME(빈 디렉터리): initialize=${isolated.initialize.error ? "error:" + String(isolated.initialize.error) : "ok"}, skills=${skillNames(isolated).length}(${JSON.stringify("byScope" in isolated.skills ? isolated.skills.byScope : isolated.skills)}), plugins=${pluginIds(isolated).length}, mcp=${JSON.stringify(names(isolated))}; V31: config.toml 정의 MCP ${JSON.stringify(userMcpNames)} 오버라이드 뒤 유지=${JSON.stringify(v31ConfigRetained)}, 집합 차이=${JSON.stringify(v31Removed)}` });
+    push({ cap: "CAP-07", agent: "codex", status: "conditional", reached: cu && mcpCalls(cu).length ? "started" : cuSkill ? "discovered" : "discovered", condition: `computer-use@openai-bundled 는 node_repl MCP 훅 + Desktop 앱 전제(Desktop 프로세스 ${(raw.codexDesktopProcesses as string[]).length ? "실행 중: " + JSON.stringify(raw.codexDesktopProcesses) : "미실행"}); 캡처·입력 금지 지시 하에 기동만 시도. MASTER (e) 'Desktop 앱 미실행' 조건은 ${(raw.codexDesktopProcesses as string[]).length ? "**미충족**(앱 실행 중) → 헤드리스 1단 가용성은 미판정, 앱 종료 후 재실측 필요" : "충족"}; '2단 전용'은 실측 결론이 아니라 제품 정책 제안(3단 스크립트 금지, 리뷰 #2)`, evidence: `computer-use:computer-use 스킬 주입(readOnly, 승인 전부 거부): status=${cu?.turnStatus ?? "skill-not-listed"}, error=${cu?.turnError ?? null}, itemTypes=${JSON.stringify(cu?.itemTypes ?? {})}, MCP/tool 아이템=${JSON.stringify(mcpCalls(cu).map((i) => pick(i, ["type", "server", "tool", "status", "error"]))).slice(0, 300)}, 승인요청=${cu?.serverRequests.length ?? 0}; config.computer_use=${JSON.stringify("computer_use" in shared.config ? shared.config.computer_use : null).slice(0, 120)}; 최종 메시지: ${(cu?.finalText ?? "").slice(0, 200)}` });
+    push({ cap: "CAP-08", agent: "codex", status: "conditional", reached: mcpReached(probeRow), condition: "-c mcp_servers.<name> 오버라이드로 앱 MCP 도구 서버 주입 가능(config.toml 무수정); 기동 판정은 핸드셰이크 기준(도구 노출 >0·toolsError 없음, 리뷰 #3); 도구 서버 자체는 V1 P10b T9", evidence: `-c 'mcp_servers.s9_probe={command="node",args=[mcp-probe-server.mjs]}' → mcpServerStatus/list 에 s9_probe 등장=${names(overridden).includes("s9_probe")} (rows=${JSON.stringify(names(overridden))}); s9_probe 행: tools=${probeRow?.tools ?? 0}, toolsError=${JSON.stringify(probeRow?.toolsError ?? null)}, authStatus=${JSON.stringify(probeRow?.authStatus ?? null)}, runtimeStatus=${JSON.stringify(probeRow?.runtimeStatus ?? {})}; V31: config.toml [mcp_servers.*] ${userMcpNames.length}개 중 오버라이드 뒤 유지=${v31ConfigRetained.length}개(${JSON.stringify(v31ConfigRetained)}); 전체 집합 차이(공유−오버라이드)=${JSON.stringify(v31Removed)} — 목록은 ${mcpSettle(shared)} / ${mcpSettle(overridden)} 폴링으로 안정화한 스냅숏` });
+    push({ cap: "CAP-09", agent: "codex", status: "conditional", reached: "executed", condition: "상속 범위 실측 = 로그인(공유 홈 documents·imagegen 턴 실행으로 간접 확인)·system/user/플러그인 스킬·플러그인·MCP·config layers·notify/hooks(형태 비교). **미실측**: 세션 목록(thread/list) 비교, 분리 홈에서 로그인 필요 작업(턴) 실행(리뷰 #4)", evidence: `유효 설정 상속(공유→분리, 형태만): ${JSON.stringify(inheritance)}; 공유 CODEX_HOME: skills=${skillNames(shared).length}(${JSON.stringify("byScope" in shared.skills ? shared.skills.byScope : {})}), plugins installed=${codexPlugins.length}, mcp=${JSON.stringify(names(shared))}, config layers=${JSON.stringify("layers" in shared.config ? shared.config.layers.map((l) => l.name ?? l.source) : [])}; 분리 CODEX_HOME(빈 디렉터리): initialize=${isolated.initialize.error ? "error:" + String(isolated.initialize.error) : "ok"}, skills=${skillNames(isolated).length}(${JSON.stringify("byScope" in isolated.skills ? isolated.skills.byScope : isolated.skills)}), plugins=${pluginIds(isolated).length}, mcp=${JSON.stringify(names(isolated))}; V31: config.toml 정의 MCP ${JSON.stringify(userMcpNames)} 오버라이드 뒤 유지=${JSON.stringify(v31ConfigRetained)}, 집합 차이=${JSON.stringify(v31Removed)}` });
   } finally {
     repo.cleanup();
     rmSync(scratchHome, { recursive: true, force: true });
@@ -373,9 +408,10 @@ function countBy<T>(rows: T[], key: (r: T) => string): Record<string, number> {
   for (const r of rows) out[key(r)] = (out[key(r)] ?? 0) + 1;
   return out;
 }
-/** 함수 필드(skillPath)를 떼어낸 직렬화 가능한 요약 */
-function strip<T extends { skillPath: unknown }>(d: T): Omit<T, "skillPath"> {
-  const { skillPath: _omit, ...rest } = d;
+/** 함수 필드(skillPath)와 유효 설정 원본(effective — 경로 포함)을 떼어낸 직렬화 가능한 요약 */
+function strip<T extends { skillPath: unknown; effective: unknown }>(d: T): Omit<T, "skillPath" | "effective"> {
+  const { skillPath: _omit, effective: _omit2, ...rest } = d;
   void _omit;
+  void _omit2;
   return rest;
 }
