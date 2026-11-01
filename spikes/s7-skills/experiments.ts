@@ -288,7 +288,8 @@ export function approvalDecision(params: unknown, cwd: string): "accept" | "decl
   const walk = (v: unknown) => {
     if (typeof v === "string") {
       if (/^(?:[A-Za-z]:[\\/]|\/)/.test(v)) paths.push(v);
-      for (const m of v.matchAll(/[A-Za-z]:[\\/][^\s'"`;|&<>]*/g)) paths.push(m[0]);
+      for (const m of v.matchAll(/[A-Za-z]:[\\/][^\s'"`;|&<>]*/g)) paths.push(m[0]); // Windows 드라이브 경로
+      for (const m of v.matchAll(/(?<![\w/.:-])\/[A-Za-z0-9_.-]+(?:\/[^\s'"`;|&<>]*)?/g)) if (!/^\/(dev|proc)\//.test(m[0])) paths.push(m[0]); // POSIX 절대 경로(/dev, /proc 제외)
     } else if (Array.isArray(v)) v.forEach(walk);
     else if (v && typeof v === "object") Object.values(v as Record<string, unknown>).forEach(walk);
   };
