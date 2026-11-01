@@ -1,0 +1,12 @@
+| # | 심각도(Critical/High/Medium/Low) | 위치(파일:행 또는 보고서 §) | 문제 | 제안 |
+|---|---|---|---|---|
+| 1 | High | `spikes/fixtures/codex-0.166.0/s1a-readOnly.jsonl:16`, `s1a-workspaceWrite.jsonl:16,20`; `spikes/_shared/mask.ts:19` | MCP 시작 실패 메시지에 Cloudflare 챌린지 HTML과 토큰성 매개변수가 마스킹 없이 남아 있다. | 오류 본문은 저장 전에 요약·제거하고, 두 픽스처를 다시 마스킹한 뒤 민감 문자열 검사를 수행한다. |
+| 2 | Medium | `spikes/s1-codex-app-server/s1a.test.ts:125-127`; `client.ts:161-165`; 보고서 §1 행 6 | 테스트는 두 케이스의 알림 **합계가 1회 이상**인지 확인한다. 픽스처에는 각 턴 4회가 있지만, 단언은 `turnId` 상관을 확인하지 않아 AC-P00-2의 “tokenUsage 상관 pass”보다 약하다. | 각 턴에서 `threadId`와 `turnId`가 일치하는 알림을 1회 이상 단언한다. |
+| 3 | Medium | `spikes/_shared/sampleRepo.ts:32-37`; `spikes/s1-codex-app-server/audit.ts:8-16`; 보고서 §2 | 감사 입력은 최종 `git status`뿐이다. Git 내부, 무시된 파일, 커밋으로 깨끗해진 변경, 작업 트리 밖 쓰기와 명령의 외부 부수 효과는 이 감사에서 보이지 않는다. 따라서 이번 README 변경 포착은 입증됐지만 일반적인 사후 효과 탐지로 확대할 수 없다. | 보고서에 탐지 범위를 명시하고, 후속 감사에는 파일 해시·Git 참조·명령 및 외부 효과 관찰을 추가한다. |
+| 4 | Medium | `spikes/s1-codex-app-server/s1a.test.ts:47-59`; `client.ts:211-216`; 보고서 §3 | 모든 `*/requestApproval`에 `{decision:"decline"}`을 보내므로, 보고서가 별도 응답 구조로 적은 `item/permissions/requestApproval`에도 잘못된 형태를 보낸다. `requestUserInput`과 MCP elicitation은 오류 응답으로 끝난다. 이번 픽스처에서 실제 발생한 command 승인은 정상 응답했다. | 요청 종류별 응답 타입과 처리기를 분리하고, 미지원 요청의 실패·보류 동작을 명시한다. |
+| 5 | Medium | `spikes/s1-codex-app-server/client.ts:257-267,130-145` | `turn/start` 응답을 받은 **뒤** `turn/completed` 구독을 시작한다. 빠른 턴에서는 완료 알림을 놓쳐 대기 시간이 만료될 수 있다. 파싱 실패 메시지도 기록만 하고 무시한다. | 완료 알림을 요청 전부터 구독하거나 턴별로 버퍼링하고, 파싱 실패는 프로토콜 오류로 전파한다. |
+| 6 | Low | `spikes/s1-codex-app-server/s1a.test.ts:108-110`; 보고서 §1 행 3 | `Array.isArray(approvalRequests)`는 항상 참이다. 픽스처 95–97행은 이번 실행의 요청·`decline`·해결을 뒷받침하지만, 테스트는 요청이 온 경우 응답과 해결이 짝지어졌는지 단언하지 않는다. | 요청이 있었을 때 같은 ID의 `decline` 송신과 `serverRequest/resolved` 수신을 확인한다. 요청 0회는 계획대로 관찰값으로 둔다. |
+| 7 | Low | `spikes/_shared/mask.ts:3,19`; 두 픽스처의 `exec-*` 아이템 | 홈 경로·호스트명과 UUIDv7 스레드 ID는 치환됐으나 실행 아이템의 UUIDv4와 메시지 ID는 남아 있다. 반대로 서로 다른 스레드·턴 ID를 모두 `<thread-id>`로 치환해 재생 시 ID 관계를 검증하기 어렵다. | 모든 불투명 ID를 종류별·원본별로 일관된 가명에 매핑한다. |
+| 8 | Low | 보고서 §2 | “2×2”라고 했지만 실제 표는 관찰된 조합 두 행이다. 승인 요청 유무 × 실제 변경 유무의 네 칸이 표시되지 않는다. | 네 칸의 관찰 건수를 표시하고, 미관찰 칸은 미관찰로 적는다. |
+
+**판정: 수정 후 수용.** 이번 픽스처는 `readOnly`의 최종 README 무변경, `workspaceWrite`의 무승인 README 변경과 감사 포착, 실제 command 승인 왕복을 뒷받침한다. 다만 민감한 챌린지 문자열이 픽스처에 남아 있고 사용량 상관 단언이 수용 기준보다 약하므로, 이를 고친 뒤 S1a pass를 확정하는 것이 타당하다.

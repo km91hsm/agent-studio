@@ -287,6 +287,30 @@ export class AppServerClient {
     return this.request("skills/list", { cwds, forceReload });
   }
 
+  /** experimental(`initialize.capabilities.experimentalApi`) — opt-in 없이는 거부되는지 S1b에서 실측 */
+  async threadQueueAdd(threadId: string, clientUserMessageId: string, text: string): Promise<unknown> {
+    return this.request("thread/queue/add", { threadId, clientUserMessageId, input: [{ type: "text", text }] });
+  }
+
+  /** 시그널 전송 후 종료 대기(V14 관찰용). Windows에서는 Node가 모든 시그널을 TerminateProcess로 처리한다. */
+  killAndWait(signal: NodeJS.Signals, timeoutMs = 5000): Promise<{ code: number | null; signal: string | null; killed: boolean; elapsedMs: number } | null> {
+    const p = this.proc;
+    if (!p) return Promise.resolve(this.exitInfo ? { ...this.exitInfo, killed: false, elapsedMs: 0 } : null);
+    this.proc = null;
+    const t0 = Date.now();
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        p.kill();
+        resolve(null);
+      }, timeoutMs);
+      p.once("exit", (code, sig) => {
+        clearTimeout(timer);
+        resolve({ code, signal: sig, killed: p.killed, elapsedMs: Date.now() - t0 });
+      });
+      p.kill(signal);
+    });
+  }
+
   // ---- 관찰 ----
   tokenUsage(threadId: string): { count: number; last: unknown; total: unknown } {
     return this.usage.get(threadId) ?? { count: 0, last: undefined, total: undefined };
