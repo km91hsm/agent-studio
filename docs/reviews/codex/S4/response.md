@@ -1,0 +1,12 @@
+| # | 심각도(Critical/High/Medium/Low) | 위치 | 문제 | 제안 |
+|---|---|---|---|---|
+| 1 | High | [s4.test.ts](D:/LLM/agent-studio/spikes/s4-isolation/s4.test.ts:63), [S4.md](D:/LLM/agent-studio/docs/spikes/S4.md:37) | `network_external`의 효과 판정은 잘린 명령 앞 100자에서 `example.com`을 찾는다. 녹화에서는 도메인이 101번째 문자부터 시작하므로 HTTP 200이 나와도 `effect=false`가 된다. 현재의 `000`·exit 1은 HTTP 응답을 받지 못했다는 증거지만, 샌드박스가 원인이라는 단독 증거는 아니다. | 전체 명령과 원본 출력·종료 코드를 별도로 판독하고, 통제 가능한 외부 수신점 또는 비격리 대조 실행으로 차단 원인을 확인한다. 그 전까지 외부 호스트 `ENFORCED`는 미확인으로 둔다. |
+| 2 | High | [s4.test.ts](D:/LLM/agent-studio/spikes/s4-isolation/s4.test.ts:184) | `afterAll`이 저장소의 git-ignored `.tmp/` 전체를 재귀 삭제한다. 실행 전에 그곳에 있던 다른 파일도 지워질 수 있어 환경 불변 조건을 해친다. | 실행별 고유 하위 디렉터리를 만들고 소유한 디렉터리와 파일만 정리한다. |
+| 3 | Medium | [verdict.ts](D:/LLM/agent-studio/spikes/s4-isolation/verdict.ts:56), [S4.md](D:/LLM/agent-studio/docs/spikes/S4.md:56) | 자발적 승인 요청을 집행 증거에서 제외하고 `never` 행으로 판단하는 규칙은 타당하다. 그러나 파생 `isolationWarnings`에는 `elevated/on-request/fs_tmp_parent`가 빠진다. 이 행은 모델이 먼저 물었을 뿐, 같은 설정의 `never` 행에서는 쓰기가 성공했다. 보고서의 loopback 경고 명칭 `network_loopback`과 산출물의 `network`도 다르다. | 경고를 행별 승인 여부가 아닌 확인된 격리 경계 기준으로 생성하고, 영역 식별자를 통일한다. |
+| 4 | Medium | [S4.md](D:/LLM/agent-studio/docs/spikes/S4.md:23), [s4.test.ts](D:/LLM/agent-studio/spikes/s4-isolation/s4.test.ts:81) | `unelevated` 설정은 인자로 전달됐지만 실제 적용 여부가 확인되지 않았다. 보고서는 이 한계를 명시했으나 16행 비교와 파생 보장 입력은 두 변형을 각각 실측한 것처럼 사용할 여지가 있다. | `unelevated` 행에 적용 상태 `미검증`을 기록하고, 적용 확인 전에는 변형 간 동등성이나 해당 변형의 보장값을 확정하지 않는다. |
+| 5 | Medium | [S4.md](D:/LLM/agent-studio/docs/spikes/S4.md:25), [MASTER_IMPLEMENTATION_PLAN.md](D:/LLM/agent-studio/docs/planning/05_plan/MASTER_IMPLEMENTATION_PLAN.md:100) | WSL2는 `bwrap`·커널만 확인했고 격리 시도는 미실측이다. 보고서에는 솔직히 적혀 있지만 S4 전체를 `pass`로 표시하면 MASTER Step 5의 비교 완료로 읽힐 수 있다. | S4 상태를 부분 완료로 표시하고 WSL2 판정을 별도 미완 항목으로 남긴다. |
+| 6 | Medium | [mask.ts](D:/LLM/agent-studio/spikes/_shared/mask.ts:3), [s4-claude-allow-fs.jsonl](D:/LLM/agent-studio/spikes/fixtures/claude-2.1.316/s4-claude-allow-fs.jsonl:42) | 세 Claude 녹화에 원문 UUID `session_id`가 남아 있고, 한 녹화에는 마스킹되지 않은 `C:\Users\...` 형태의 경로가 있다. 토큰·Codex 형식 thread id 검색에서는 일치 항목을 찾지 못했다. | Claude 세션 ID도 마스킹하고 경로 1건을 확인·정화한 뒤 공개용 픽스처를 다시 점검한다. |
+
+판정 함수의 우선순위와 TEMP·loopback을 별도 영역으로 나눈 판단은 AC-P00-7b에 맞습니다. 샘플 worktree가 TEMP에 있고 `.tmp/`가 그 밖에 있다는 이번 실행 조건에서는 외부 쓰기 대상도 적절하지만, 저장소 루트가 writable root인 다른 실행에 일반화할 수는 없습니다.
+
+**판정: 수정 후 수용.** 외부 호스트 효과 판정 결함과 `.tmp/` 전체 삭제를 먼저 고쳐야 합니다. WSL2·`unelevated`의 미검증 범위와 경고·마스킹 입력도 산출물에 정확히 반영해야 합니다.

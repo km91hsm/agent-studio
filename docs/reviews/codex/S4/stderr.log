@@ -1,0 +1,1 @@
+2026-11-01T18:51:08.659691Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 403: <HTML 페이지 전문 생략 — Cloudflare 챌린지 페이지, 리뷰 대상과 무관한 원격 MCP 전송 오류. 원문은 로컬 비공개 보관 D:/LLM/agent-studio-private/evidence/reviews/S4/stderr.log>")
