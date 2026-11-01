@@ -1,0 +1,46 @@
+{
+  "ttlMs": 900000,
+  "rows": [
+    {
+      "instruction": "approval-hold-900000",
+      "sandbox": "readOnly",
+      "approvalRequests": [
+        {
+          "method": "item/commandExecution/requestApproval",
+          "kind": "command",
+          "reason": "README.md 끝에 요청하신 한 줄을 추가하도록 허용하시겠습니까?",
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-hold'\""
+        }
+      ],
+      "verdict": "approval_requested",
+      "effect": false,
+      "effectEvidence": "git status: []",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Tail 5'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-hold'\"",
+          "exitCode": null,
+          "status": "declined"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "README.md 끝에 `spike-s1c-hold`를 추가하려 했지만, 파일 쓰기 승인 요청이 거절되어 변경하지 못했습니다. 승인해 주시면 다시 추가하겠습니다."
+    }
+  ],
+  "hold": {
+    "ttlMs": 900000,
+    "requestMethod": "item/commandExecution/requestApproval",
+    "heldForMs": 906220,
+    "notificationsDuringHold": [
+      "turn/completed"
+    ],
+    "resolvedAfterDecline": true,
+    "turnStatus": "completed",
+    "exitedDuringHold": null,
+    "effect": false
+  }
+}

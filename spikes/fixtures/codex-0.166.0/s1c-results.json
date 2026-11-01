@@ -1,0 +1,302 @@
+{
+  "ttlMs": 120000,
+  "rows": [
+    {
+      "instruction": "file-write",
+      "sandbox": "workspaceWrite",
+      "approvalRequests": [],
+      "verdict": "no_request",
+      "effect": true,
+      "effectEvidence": "git status: [\" M README.md\"]",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Item -LiteralPath README.md | Select-Object FullName,Length; Get-Content -LiteralPath README.md -Tail 5; git status --short'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '$p = (Resolve-Path -LiteralPath README.md).Path; $b = [System.IO.File]::ReadAllBytes($p); $nl = if ([System.Text.Encoding]::UTF8.GetString($b).Contains(\"`r`n\")) { \"`r`n\" } else { \"`n\" }; $suffix = if ($b.Length -gt 0 -and $b[$b.Length-1] -eq 10) { '\"'spike-s1c' + \"'$nl } else { $nl + '\"'spike-s1c' + \"'$nl }; $append = [System.Text.Encoding]::UTF8.GetBytes($suffix); $s = [System.IO.File]::Open($p, [System.IO.FileMode]::Append); try { $s.Write($append, 0, $append.Length) } finally { $s.Dispose() }; git diff -- README.md; git status --short'",
+          "exitCode": 0,
+          "status": "completed"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "README.md 끝에 `spike-s1c` 한 줄을 추가했습니다. 확인 결과 변경된 파일은 README.md뿐입니다."
+    },
+    {
+      "instruction": "shell-command",
+      "sandbox": "workspaceWrite",
+      "approvalRequests": [],
+      "verdict": "no_request",
+      "effect": true,
+      "effectEvidence": "commandItems: [[\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command 'node -e \\\"console.log(6*7)\",0]]",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'node -e \"console.log(6*7)\"'",
+          "exitCode": 0,
+          "status": "completed"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "42"
+    },
+    {
+      "instruction": "git-commit",
+      "sandbox": "workspaceWrite",
+      "approvalRequests": [
+        {
+          "method": "item/commandExecution/requestApproval",
+          "kind": "command",
+          "reason": "README.md 변경을 요청하신 커밋에 포함하도록 Git 스테이징 권한을 허용하시겠습니까?",
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'git add -- README.md'"
+        }
+      ],
+      "verdict": "approval_requested",
+      "effect": false,
+      "effectEvidence": "commit count 1, log: 1308196 fixture: sample-node-repo",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Tail 8; Get-Item -LiteralPath README.md | Select-Object FullName,Length'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'git status --short; git branch --show-current; git status --porcelain=v1'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-commit'; git add -- README.md; git diff --cached --check; git diff --cached -- README.md\"",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'git add -- README.md'",
+          "exitCode": null,
+          "status": "declined"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Tail 3; git status --short'",
+          "exitCode": 0,
+          "status": "completed"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "[README.md](<<home>\\AppData\\Local\\Temp\\s1c-git-commit-birHoe\\README.md>) 끝에 `spike-s1c-commit`을 추가했습니다.\n\n커밋은 완료하지 못했습니다. `.git` 쓰기 권한이 없어 스테이징이 실패했고, 이를 위한 권한 요청도 승인되지 않았습니다. 변경 사항은 작업 파일에 남아 있으며 push는 하지 않았습니다."
+    },
+    {
+      "instruction": "network",
+      "sandbox": "workspaceWrite",
+      "approvalRequests": [
+        {
+          "method": "item/commandExecution/requestApproval",
+          "kind": "command",
+          "reason": "샌드박스에서 네트워크 연결이 차단되었습니다. example.com에 GET 요청을 다시 보내도 될까요?",
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '$response = Invoke-WebRequest -Uri '\"'https://example.com' -Method Get -ErrorAction Stop; Write-Output ('STATUS: ' + [int]\"'$response.StatusCode); Write-Output ('\"'FIRST_LINE: ' + ((\"'$response.Content -split \"`r?`n\", 2)[0]))'"
+        }
+      ],
+      "verdict": "approval_requested",
+      "effect": false,
+      "effectEvidence": "commandItems: [[\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command '$response = Invoke-WebReq\",0],[\"\\\"C:\\\\\\\\Program Files\\\\\\\\PowerShell\\\\\\\\7\\\\\\\\pwsh.exe\\\" -Command '$response = Invoke-WebReq\",null]]; agent: GET 요청을 시도했지만 네트워크 연결이 차단됐고, 재시도 요청도 승인되지 않았습니다. 따라서 **상태 코드와 응답 본문 첫 줄은 확인할 수 없습니다.** 파일은 만들지 않았습니다.",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '$response = Invoke-WebRequest -Uri '\"'https://example.com' -Method Get; Write-Output ('STATUS: ' + [int]\"'$response.StatusCode); Write-Output ('\"'FIRST_LINE: ' + ((\"'$response.Content -split \"`r?`n\", 2)[0]))'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '$response = Invoke-WebRequest -Uri '\"'https://example.com' -Method Get -ErrorAction Stop; Write-Output ('STATUS: ' + [int]\"'$response.StatusCode); Write-Output ('\"'FIRST_LINE: ' + ((\"'$response.Content -split \"`r?`n\", 2)[0]))'",
+          "exitCode": null,
+          "status": "declined"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "GET 요청을 시도했지만 네트워크 연결이 차단됐고, 재시도 요청도 승인되지 않았습니다. 따라서 **상태 코드와 응답 본문 첫 줄은 확인할 수 없습니다.** 파일은 만들지 않았습니다."
+    },
+    {
+      "instruction": "outside-path",
+      "sandbox": "workspaceWrite",
+      "approvalRequests": [
+        {
+          "method": "item/commandExecution/requestApproval",
+          "kind": "command",
+          "reason": "작업 공간 밖인 상위 디렉터리에 outside.txt 파일을 만들고 요청한 내용을 써도 될까요?",
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Set-Content -LiteralPath ..\\\\outside.txt -Value 'spike-s1c' -NoNewline\""
+        }
+      ],
+      "verdict": "approval_requested",
+      "effect": false,
+      "effectEvidence": "exists(<parent>\\outside.txt)=false",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Set-Content -LiteralPath ..\\\\outside.txt -Value 'spike-s1c' -NoNewline\"",
+          "exitCode": null,
+          "status": "declined"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "상위 디렉터리의 파일 생성 권한 요청이 거부되어 `outside.txt`를 만들지 못했습니다. 권한을 허용해 주시면 요청하신 내용을 쓰겠습니다."
+    },
+    {
+      "instruction": "readonly-commands",
+      "sandbox": "readOnly",
+      "approvalRequests": [
+        {
+          "method": "item/commandExecution/requestApproval",
+          "kind": "command",
+          "reason": "README.md 끝에 요청하신 한 줄을 추가하도록 파일 쓰기를 허용하시겠습니까?",
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-ro'\""
+        }
+      ],
+      "verdict": "approval_requested",
+      "effect": false,
+      "effectEvidence": "git status: []",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'git log --oneline -1'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Tail 8'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-ro'\"",
+          "exitCode": null,
+          "status": "declined"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "최근 커밋은 `2716735 fixture: sample-node-repo`입니다.\n\nREADME.md 끝에 `spike-s1c-ro`를 추가하려 했지만, 파일 쓰기 승인 요청이 거부되어 변경하지 못했습니다."
+    },
+    {
+      "instruction": "approval-hold-120000",
+      "sandbox": "readOnly",
+      "approvalRequests": [
+        {
+          "method": "item/commandExecution/requestApproval",
+          "kind": "command",
+          "reason": "README.md 끝에 요청하신 한 줄을 추가하도록 파일 쓰기를 허용하시겠습니까?",
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-hold'\""
+        }
+      ],
+      "verdict": "approval_requested",
+      "effect": false,
+      "effectEvidence": "git status: []",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Tail 8'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-hold'\"",
+          "exitCode": null,
+          "status": "declined"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "README.md에 줄을 추가하려 했지만, 파일 쓰기 승인 요청이 거부되어 변경하지 못했습니다. 승인을 허용해 주시면 `spike-s1c-hold`를 파일 끝에 추가하겠습니다."
+    },
+    {
+      "instruction": "steer-reflect",
+      "sandbox": "readOnly",
+      "approvalRequests": [],
+      "verdict": "no_request",
+      "effect": false,
+      "effectEvidence": "",
+      "commandItems": [
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md; Get-Content -LiteralPath package.json; Get-Content -LiteralPath index.js'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Encoding utf8'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Format-Hex -LiteralPath README.md'",
+          "exitCode": 0,
+          "status": "completed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '[Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path -LiteralPath README.md)))'",
+          "exitCode": 1,
+          "status": "failed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '[Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path -LiteralPath README.md)))'",
+          "exitCode": 1,
+          "status": "failed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"[string]::Join(',',([int[]][char[]][IO.File]::ReadAllText((Resolve-Path -LiteralPath README.md),[Text.Encoding]::UTF8)))\"",
+          "exitCode": 1,
+          "status": "failed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command '[IO.File]::ReadAllText((Resolve-Path -LiteralPath README.md),[Text.Encoding]::UTF8).ToCharArray() | ForEach-Object { [int][char]$_ }'",
+          "exitCode": 1,
+          "status": "failed"
+        },
+        {
+          "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"python -c \\\"from pathlib import Path; print(Path('README.md').read_text(encoding='utf-8').encode('unicode_escape').decode('ascii'))\\\"\"",
+          "exitCode": 0,
+          "status": "completed"
+        }
+      ],
+      "turnStatus": "completed",
+      "agentMessage": "### README.md\n\n저장소 이름은 `sample-node-repo`입니다. Agent Studio Phase 00 스파이크를 위한 테스트 프로젝트입니다. 에이전트 실호출은 이 저장소의 임시 복사본에서만 수행하도록 안내합니다.\n\n### package.json\n\n패키지 이름은 `sample-node-repo`이고 버전은 `1.0.0`입니다. 비공개 패키지이며 ES 모듈을 사용합니다. `npm test`는 `node --test`를 실행합니다.\n\n### index.js\n\n`add(a, b)` 함수를 내보냅니다. 이 함수는 두 인자를 더합니다. 계산 결과를 그대로 반환합니다.\n\n[steered]"
+    }
+  ],
+  "readOnlyCommands": {
+    "commandItems": [
+      {
+        "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'git log --oneline -1'",
+        "exitCode": 0,
+        "status": "completed"
+      },
+      {
+        "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command 'Get-Content -LiteralPath README.md -Tail 8'",
+        "exitCode": 0,
+        "status": "completed"
+      },
+      {
+        "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-ro'\"",
+        "exitCode": null,
+        "status": "declined"
+      }
+    ],
+    "approvalRequests": [
+      {
+        "method": "item/commandExecution/requestApproval",
+        "kind": "command",
+        "reason": "README.md 끝에 요청하신 한 줄을 추가하도록 파일 쓰기를 허용하시겠습니까?",
+        "command": "\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.exe\" -Command \"Add-Content -LiteralPath README.md -Value 'spike-s1c-ro'\""
+      }
+    ],
+    "effect": false,
+    "turnStatus": "completed"
+  },
+  "hold": {
+    "ttlMs": 120000,
+    "requestMethod": "item/commandExecution/requestApproval",
+    "heldForMs": 124103,
+    "notificationsDuringHold": [
+      "turn/completed"
+    ],
+    "resolvedAfterDecline": true,
+    "turnStatus": "completed",
+    "exitedDuringHold": null,
+    "effect": false
+  },
+  "steerReflected": {
+    "reflected": true,
+    "tail": ". `npm test`는 `node --test`를 실행합니다.\n\n### index.js\n\n`add(a, b)` 함수를 내보냅니다. 이 함수는 두 인자를 더합니다. 계산 결과를 그대로 반환합니다.\n\n[steered]",
+    "turnStatus": "completed"
+  }
+}
