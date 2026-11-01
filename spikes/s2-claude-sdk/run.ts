@@ -67,6 +67,12 @@ export interface ClaudeRunOpts {
   includePartialMessages?: boolean;
   resume?: string;
   executable?: string;
+  /** S9: 설정 소스(생략 = CLI 기본 전부, [] = SDK 격리) */
+  settingSources?: ("user" | "project" | "local")[];
+  /** S9: 추가 CLI 플래그(예: `{ chrome: null }` = `--chrome`) */
+  extraArgs?: Record<string, string | null>;
+  /** S9: 스킬 컨텍스트 필터 */
+  skills?: string[] | "all";
 }
 
 export interface Recorded {
@@ -174,6 +180,9 @@ export class ClaudeRun {
       env: this.opts.env,
       resume: this.opts.resume,
       stderr: (d) => this.stderrLines.push(d),
+      ...(this.opts.settingSources ? { settingSources: this.opts.settingSources } : {}),
+      ...(this.opts.extraArgs ? { extraArgs: this.opts.extraArgs } : {}),
+      ...(this.opts.skills ? { skills: this.opts.skills } : {}),
     };
     this.q = query({ prompt: this.input, options });
     this.send(text);
