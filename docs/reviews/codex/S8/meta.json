@@ -1,0 +1,17 @@
+{
+ "call": "S8_review",
+ "purpose": "S8 스파이크 교차 리뷰(읽기 전용, features.memories=false)",
+ "thread_id": "<thread-id>",
+ "reasoning_effort": "high",
+ "sandbox": "read-only",
+ "started_at": "2026-11-01T21:51:44Z",
+ "finished_at": "2026-11-01T21:53:53Z",
+ "exit_code": 0,
+ "usage": {
+  "input_tokens": 315704,
+  "cached_input_tokens": 276736,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 6884,
+  "reasoning_output_tokens": 3697
+ }
+}

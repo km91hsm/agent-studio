@@ -1,11 +1,24 @@
 {
+  "platform": "win32",
+  "node": "v24.21.0",
   "patch-then-crash": {
     "status": 1,
     "signal": null,
-    "stdout": "[worker] patch-then-crash: crashing before ledger.commit()",
-    "stderr": ""
+    "error": null,
+    "stdout": "[worker] patch-then-crash: crashing before ledger.commit()"
   },
-  "assess:patch-then-crash": "done",
+  "assess:patch-then-crash": {
+    "before": {
+      "commits": "1",
+      "head": "5736974297670af2f985e67306223ba4a0ba3111",
+      "state": "intended"
+    },
+    "decision": "done",
+    "after": {
+      "commits": "1",
+      "head": "5736974297670af2f985e67306223ba4a0ba3111"
+    }
+  },
   "ledger:patch-then-crash": {
     "version": 1,
     "effects": {
@@ -20,12 +33,12 @@
           "fileMode": "100644"
         },
         "state": "committed",
-        "intendedAt": "2026-11-01T21:48:26.824Z",
-        "committedAt": "2026-11-01T21:48:26.835Z",
+        "intendedAt": "2026-11-01T21:59:26.492Z",
+        "committedAt": "2026-11-01T21:59:26.671Z",
         "result": null,
         "assessments": [
           {
-            "at": "2026-11-01T21:48:26.833Z",
+            "at": "2026-11-01T21:59:26.670Z",
             "decision": "done",
             "observed": "f05a1d117648d293f6e2f6c15ebabda56d9f86a3"
           }
@@ -36,11 +49,21 @@
   "commit-then-crash": {
     "status": 1,
     "signal": null,
-    "stdout": "[worker] commit-then-crash: crashing before ledger.commit()",
-    "stderr": ""
+    "error": null,
+    "stdout": "[worker] commit-then-crash: crashing before ledger.commit()"
   },
-  "assess:commit-then-crash": "done",
-  "rev-list": "2",
+  "assess:commit-then-crash": {
+    "before": {
+      "commits": "2",
+      "head": "8b4035e45b2ddcdedd981f2d0bf7588c53eb592c",
+      "state": "intended"
+    },
+    "decision": "done",
+    "after": {
+      "commits": "2",
+      "head": "8b4035e45b2ddcdedd981f2d0bf7588c53eb592c"
+    }
+  },
   "ledger:commit-then-crash": {
     "version": 1,
     "effects": {
@@ -48,20 +71,67 @@
         "key": "gc-crash",
         "spec": {
           "kind": "git_commit",
-          "parentSha": "a87d2030811e4377f72b585dad7553f0da360d3a",
+          "parentSha": "f28f138c08b038772394608c638660c0a769a05d",
+          "treeSha": "96244a632d67fbebb4bb3c5f16931569d9e4c550",
           "message": "s8: outbox commit"
         },
         "state": "committed",
-        "intendedAt": "2026-11-01T21:48:27.098Z",
-        "committedAt": "2026-11-01T21:48:27.653Z",
+        "intendedAt": "2026-11-01T21:59:27.865Z",
+        "committedAt": "2026-11-01T21:59:28.496Z",
         "result": {
-          "sha": "da46401b5f0a0900c5b7727565d9238270317296"
+          "sha": "8b4035e45b2ddcdedd981f2d0bf7588c53eb592c"
         },
         "assessments": [
           {
-            "at": "2026-11-01T21:48:27.653Z",
+            "at": "2026-11-01T21:59:28.496Z",
             "decision": "done",
-            "observed": "head=da46401b5f0a0900c5b7727565d9238270317296 sha=da46401b5f0a0900c5b7727565d9238270317296"
+            "observed": "sha=8b4035e45b2ddcdedd981f2d0bf7588c53eb592c parent=f28f138c08b038772394608c638660c0a769a05d tree=96244a632d67fbebb4bb3c5f16931569d9e4c550 head=8b4035e45b2ddcdedd981f2d0bf7588c53eb592c"
+          }
+        ]
+      }
+    }
+  },
+  "commit-then-crash-before-record": {
+    "status": 1,
+    "signal": null,
+    "error": null,
+    "stdout": "[worker] commit-then-crash-before-record: crashing before ledger.commit()"
+  },
+  "assess:commit-then-crash-before-record": {
+    "before": {
+      "commits": "2",
+      "head": "112e464247b822c39670f965fcccffd50244c5b4",
+      "state": "intended"
+    },
+    "decision": "done",
+    "after": {
+      "commits": "2",
+      "head": "112e464247b822c39670f965fcccffd50244c5b4"
+    }
+  },
+  "ledger:commit-then-crash-before-record": {
+    "version": 1,
+    "effects": {
+      "gc-crash": {
+        "key": "gc-crash",
+        "spec": {
+          "kind": "git_commit",
+          "parentSha": "6192869c00a85b27178d547497edefa45730d67c",
+          "treeSha": "96244a632d67fbebb4bb3c5f16931569d9e4c550",
+          "message": "s8: outbox commit"
+        },
+        "state": "committed",
+        "intendedAt": "2026-11-01T21:59:29.690Z",
+        "committedAt": "2026-11-01T21:59:30.244Z",
+        "result": {
+          "sha": "112e464247b822c39670f965fcccffd50244c5b4",
+          "recoveredBy": "tree_match"
+        },
+        "assessments": [
+          {
+            "at": "2026-11-01T21:59:30.244Z",
+            "decision": "done",
+            "observed": "head=112e464247b822c39670f965fcccffd50244c5b4 matches intent parent·tree (sha recovered)"
           }
         ]
       }
