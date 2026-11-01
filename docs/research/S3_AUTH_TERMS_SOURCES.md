@@ -219,7 +219,7 @@
 
 - URL: https://openai.com/policies/terms-of-use/ , https://openai.com/policies/row-terms-of-use/ , https://openai.com/policies/usage-policies/ , https://openai.com/policies/services-agreement/
 - [fetch 2026-11-02] **HTTP 403(모든 변형 URL: `/`, 무슬래시, `en-GB`, `www.openai.com/terms`) — 원문 확인 불가 → 찾지 못함**
-- `https://cdn.openai.com/osa/openai-services-agreement.pdf`는 내려받았으나 본 세션에서 텍스트 추출 도구 부재로 미파싱(파일: `C:\Users\<user>\.claude\projects\D--LLM\12103321-73f5-45bc-9381-c9526685abf9\tool-results\webfetch-1793557839433-a7ehtx.pdf`).
+- `https://cdn.openai.com/osa/openai-services-agreement.pdf`는 내려받았으나 본 세션에서 텍스트 추출 도구 부재로 미파싱(조사 세션의 임시 도구 결과 파일로만 내려받음 — 저장소에 보존하지 않음).
 - 2차(openai.com 도메인 한정 검색 스니펫, 미검증): Terms of Use — 계정 자격증명 공유·타인 사용 금지, "circumvent any rate limits or restrictions or bypass any protective measures" 금지, 자동·프로그램적 데이터 추출 금지; Usage Policies — 표기 효력일 2026-11-20(검색 메타), "circumventing safeguards may mean losing access"; Services Agreement — API key 매매·양도 금지, Usage Limits 우회 금지.
 
 해석: "제3자 앱에서 ChatGPT 자격증명 사용"을 직접 금지하는 조항은 스니펫에서 **발견되지 않음**. 가장 가까운 것은 rate limit/보호조치 우회 금지 — app-server 공식 로그인 경로를 그대로 쓰는 한 "우회"로 보기 어렵다는 것이 조사자 해석(확정 아님).

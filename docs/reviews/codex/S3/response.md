@@ -1,0 +1,15 @@
+인용문은 조사 노트의 원문과 대체로 일치하고, S3의 “이 세션 직접 확인” 행과 조사 노트에 의존한 행도 구분되어 있습니다. 아래는 약관 자문이 아닌 **문서 일관성·근거 충분성** 검토 결과입니다.
+
+| # | 심각도(Critical/High/Medium/Low) | 위치 | 문제 | 제안 |
+|---|---|---|---|---|
+| 1 | High | [S3.md §3](/D:/LLM/agent-studio/docs/spikes/S3.md:45), [조사 노트 요약](/D:/LLM/agent-studio/docs/research/S3_AUTH_TERMS_SOURCES.md:18) | 조사 노트는 Agent SDK 제품의 구독 로그인 사용을 “회색지대, 보수적으로는 금지 쪽에 가깝다”고 평가한다. S3는 토큰 비접촉·무수정 CLI 기동을 근거로 예외인 “사용자 본인의 바이너리 로그인” 쪽이라고 판정하지만, 이것만으로 데스크톱 앱이 *자기 제품에서 로그인을 제공하거나 사용자 대신 구독 요청을 라우팅하는지*가 해소되지는 않는다. 다섯 설계 제약은 제안 상태이며, 기동 성공은 약관 허용의 증거가 아니다. | 내부 개인 사용에 대한 잠정 판단과 공개 제품의 허용 여부를 분리한다. 공개 배포 경로는 **미판정·공급자 확인 필요**로 기록하고, 회신 전에는 예외 적용을 확정적으로 서술하지 않는다. |
+| 2 | High | [S3.md §2](/D:/LLM/agent-studio/docs/spikes/S3.md:27), [Task S3](/D:/LLM/agent-studio/docs/planning/05_plan/MASTER_IMPLEMENTATION_PLAN.md:94), [AC-P00-7a](/D:/LLM/agent-studio/docs/planning/05_plan/ACCEPTANCE_CRITERIA.md:20) | 두 API key 모드는 모두 **미실측**이다. 표가 공백을 정직하게 표시한 점은 좋지만, 정본의 “각 인증 모드로 S1·S2를 1회씩 실행” 및 AC의 “인증 모드별 기동 pass/fail 표”를 완료했다고 볼 수 없다. | API key 모드 실측을 남은 작업으로 두거나, 자격증명 미보유로 실행할 수 없다면 **범위 축소 제안**을 사용자에게 올린다. 현 상태의 AC-P00-7a는 부분 완료로 표시한다. |
+| 3 | Medium | [S3.md §3](/D:/LLM/agent-studio/docs/spikes/S3.md:44), [조사 노트 §2.1](/D:/LLM/agent-studio/docs/research/S3_AUTH_TERMS_SOURCES.md:166) | Codex의 로컬·오픈소스 앱 계속 사용 문구는 근거가 있지만, 같은 출처가 상업·호스팅 서비스를 불허한다. S3의 “명시적 금지 없음”은 범위를 빼고 읽으면 과도하다. 또한 상업·호스팅으로 *전환하는 시점*에 SIWC로 바꿀 수 있다고 쓰지만, 조사 노트상 유료·원격 호스팅 앱은 신청 절차가 필요하다. | “현재 로컬·비상업 전제에서 미발동”으로 한정하고, 상업·호스팅 배포 **전** 인증 경로와 접근 권한을 확정하는 게이트로 쓴다. |
+| 4 | Medium | [S3.md A6·§2](/D:/LLM/agent-studio/docs/spikes/S3.md:20), [조사 노트 §1.4](/D:/LLM/agent-studio/docs/research/S3_AUTH_TERMS_SOURCES.md:98) | “제3자 도구 사용은 재량 허용”이라는 요약에서 원문의 **usage credits를 활성화한 유료 가입자**, **특정 제3자 도구**라는 조건이 빠졌다. §2의 한도·크레딧 차감 설명도 이 조건과 금지·집행 가능성을 함께 읽어야 한다. | A6 요약과 §2 설명에 조건을 복원한다. |
+| 5 | Medium | [S3.md A7](/D:/LLM/agent-studio/docs/spikes/S3.md:21), [조사 노트 §1.7](/D:/LLM/agent-studio/docs/research/S3_AUTH_TERMS_SOURCES.md:130) | A7의 페이지 표기 시행일은 조사일인 2026-11-02보다 늦은 **2026-11-12**다. S3에 날짜는 적혀 있으나, 현재 적용 중인 정책의 근거로 읽히지 않도록 상태를 더 분명히 해야 한다. | “조회 당시 미래 시행일로 표시된 버전”이라고 명시하고 현재 약관 판정의 확정 근거에서는 제외한다. |
+| 6 | Low | [S3.md §2](/D:/LLM/agent-studio/docs/spikes/S3.md:33), [S2.md 행 9](/D:/LLM/agent-studio/docs/spikes/S2.md:26) | Claude 행의 “7건 모두 성공”은 인증 시험 자체의 결과와 S2 전체 시험 수를 섞어 보이게 한다. S2의 최종 기록은 8/8이며, 별도로 원 조건 실패 행도 남아 있다. | 인증 행에는 해당 시험의 성공값만 쓰고 S2 전체 결과는 별도 문장으로 정확히 표기한다. |
+| 7 | Low | [조사 노트 §2.5](/D:/LLM/agent-studio/docs/research/S3_AUTH_TERMS_SOURCES.md:222) | 실제 사용자명은 `<user>`로 가려졌고 S3 본문에서 식별자는 발견되지 않았다. 다만 조사 노트에 홈 경로 형태, 세션 ID로 보이는 UUID, 도구 결과 파일 ID가 남아 있다. **추정:** UUID는 세션 또는 실행 식별자다. | 임시 PDF의 절대 경로를 상대 설명 또는 가명으로 바꾸고 UUID·도구 결과 ID를 제거한다. |
+
+OpenAI Terms·Usage Policies의 403 미확인은 [S3.md O4·§4](/D:/LLM/agent-studio/docs/spikes/S3.md:25)에 드러나며, 2차 스니펫을 직접 근거로 쓰지 않은 점은 적절합니다. 다만 그 한계 때문에 Codex 판정은 app-server 문서가 확인해 주는 **범위 안에서만** 확정해야 합니다.
+
+**판정: 수정 후 수용.** 인용 대조와 미확인 출처 표시는 대체로 충실합니다. Claude 제품 경로의 예외 적용은 근거보다 강하게 판정됐고, API key 모드 미실측으로 AC-P00-7a의 완료 조건은 아직 충족되지 않았습니다.
