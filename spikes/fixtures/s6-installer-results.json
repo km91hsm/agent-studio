@@ -1,0 +1,753 @@
+{
+  "setup": {
+    "path": "D:\\LLM\\agent-studio\\spikes\\s6-installer\\dist\\AgentStudioS6Spike-Setup.exe",
+    "sizeMB": 173
+  },
+  "install": {
+    "ms": 24635,
+    "installDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer",
+    "installedSizeMB": 599,
+    "resources": [
+      "app.asar",
+      "app.asar.unpacked",
+      "elevate.exe",
+      "runtime"
+    ],
+    "runtime": [
+      "daemon.js",
+      "node.exe",
+      "node_modules",
+      "RUNTIME.json"
+    ]
+  },
+  "run_canonical": {
+    "ms": 14471,
+    "steps": {
+      "electron_start": {
+        "step": "electron_start",
+        "t": 78,
+        "ok": true,
+        "cspVariant": "canonical",
+        "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        "electron": "45.2.1",
+        "node": "24.22.1",
+        "modulesAbi": "150",
+        "isPackaged": true,
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "resourcesPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources",
+        "userData": "<home>\\AppData\\Roaming\\agent-studio-s6-installer",
+        "fuses": {
+          "runAsNodeExpected": true
+        }
+      },
+      "keyring": {
+        "step": "keyring",
+        "t": 124,
+        "ok": true,
+        "backend": "windows credential manager (expected)",
+        "roundTrip": true,
+        "deleted": true
+      },
+      "daemon_electron_run_as_node": {
+        "step": "daemon_electron_run_as_node",
+        "t": 1439,
+        "ok": true,
+        "ms": 1314,
+        "exe": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "runtime": "electron",
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "pid": 39336,
+        "versions": {
+          "node": "24.22.1",
+          "electron": "45.2.1",
+          "modules": "150",
+          "napi": "10"
+        },
+        "env": {
+          "ELECTRON_RUN_AS_NODE": "1"
+        },
+        "modulesDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\app.asar.unpacked\\node_modules",
+        "sqlite": {
+          "ok": true,
+          "journalMode": "wal",
+          "walExists": true,
+          "row": {
+            "seq": 1,
+            "body": "s6-electron-1793562704800"
+          },
+          "nativePath": "<home>/AppData/Local/Programs/agent-studio-s6-installer/resources/app.asar.unpacked/node_modules/better-sqlite3/prebuilds"
+        },
+        "pty": {
+          "ok": true,
+          "exitCode": 0,
+          "output": "s6-pty-ok",
+          "backend": "unknown"
+        }
+      },
+      "daemon_bundled_node": {
+        "step": "daemon_bundled_node",
+        "t": 3571,
+        "ok": true,
+        "ms": 2131,
+        "exe": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node.exe",
+        "runtime": "node",
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node.exe",
+        "pid": 42680,
+        "versions": {
+          "node": "24.21.0",
+          "electron": null,
+          "modules": "137",
+          "napi": "10"
+        },
+        "env": {
+          "ELECTRON_RUN_AS_NODE": null
+        },
+        "modulesDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node_modules",
+        "sqlite": {
+          "ok": true,
+          "journalMode": "wal",
+          "walExists": true,
+          "row": {
+            "seq": 1,
+            "body": "s6-node-1793562706943"
+          },
+          "nativePath": "<home>/AppData/Local/Programs/agent-studio-s6-installer/resources/runtime/node_modules/better-sqlite3/prebuilds"
+        },
+        "pty": {
+          "ok": true,
+          "exitCode": 0,
+          "output": "s6-pty-ok",
+          "backend": "unknown"
+        }
+      },
+      "monaco_diff": {
+        "step": "monaco_diff",
+        "t": 11877,
+        "ok": false,
+        "how": "timeout-8s",
+        "workerMode": "getWorker-direct",
+        "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        "lineChanges": null,
+        "monacoLoadMs": 99,
+        "diffReadyMs": 8106,
+        "workerErrors": [
+          "Uncaught [object Event]",
+          "Uncaught [object Event]"
+        ],
+        "workerCount": "n/a",
+        "cspViolations": [
+          {
+            "directive": "font-src",
+            "blocked": "data",
+            "source": ":0",
+            "sample": ""
+          },
+          {
+            "directive": "font-src",
+            "blocked": "data",
+            "source": ":0",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "font-src",
+            "blocked": "data",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "font-src",
+            "blocked": "data",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-attr",
+            "blocked": "inline",
+            "source": "app:52",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          },
+          {
+            "directive": "style-src-elem",
+            "blocked": "inline",
+            "source": "app:13",
+            "sample": ""
+          }
+        ],
+        "cspViolationCount": 44,
+        "cspDirectivesHit": [
+          "font-src",
+          "style-src-elem",
+          "worker-src",
+          "style-src-attr"
+        ]
+      },
+      "memory": {
+        "step": "memory",
+        "t": 11878,
+        "ok": true,
+        "processes": [
+          {
+            "type": "Browser",
+            "pid": 14444,
+            "workingSetMB": 111
+          },
+          {
+            "type": "GPU",
+            "pid": 13252,
+            "workingSetMB": 94
+          },
+          {
+            "type": "Utility",
+            "pid": 43508,
+            "workingSetMB": 51
+          },
+          {
+            "type": "Tab",
+            "pid": 22072,
+            "workingSetMB": 115
+          }
+        ],
+        "totalWorkingSetMB": 371
+      }
+    }
+  },
+  "run_monaco-min": {
+    "ms": 3568,
+    "steps": {
+      "electron_start": {
+        "step": "electron_start",
+        "t": 74,
+        "ok": true,
+        "cspVariant": "monaco-min",
+        "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        "electron": "45.2.1",
+        "node": "24.22.1",
+        "modulesAbi": "150",
+        "isPackaged": true,
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "resourcesPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources",
+        "userData": "<home>\\AppData\\Roaming\\agent-studio-s6-installer",
+        "fuses": {
+          "runAsNodeExpected": true
+        }
+      },
+      "keyring": {
+        "step": "keyring",
+        "t": 97,
+        "ok": true,
+        "backend": "windows credential manager (expected)",
+        "roundTrip": true,
+        "deleted": true
+      },
+      "daemon_electron_run_as_node": {
+        "step": "daemon_electron_run_as_node",
+        "t": 1411,
+        "ok": true,
+        "ms": 1312,
+        "exe": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "runtime": "electron",
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "pid": 43760,
+        "versions": {
+          "node": "24.22.1",
+          "electron": "45.2.1",
+          "modules": "150",
+          "napi": "10"
+        },
+        "env": {
+          "ELECTRON_RUN_AS_NODE": "1"
+        },
+        "modulesDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\app.asar.unpacked\\node_modules",
+        "sqlite": {
+          "ok": true,
+          "journalMode": "wal",
+          "walExists": true,
+          "row": {
+            "seq": 1,
+            "body": "s6-electron-1793562718377"
+          },
+          "nativePath": "<home>/AppData/Local/Programs/agent-studio-s6-installer/resources/app.asar.unpacked/node_modules/better-sqlite3/prebuilds"
+        },
+        "pty": {
+          "ok": true,
+          "exitCode": 0,
+          "output": "s6-pty-ok",
+          "backend": "unknown"
+        }
+      },
+      "daemon_bundled_node": {
+        "step": "daemon_bundled_node",
+        "t": 2716,
+        "ok": true,
+        "ms": 1303,
+        "exe": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node.exe",
+        "runtime": "node",
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node.exe",
+        "pid": 30108,
+        "versions": {
+          "node": "24.21.0",
+          "electron": null,
+          "modules": "137",
+          "napi": "10"
+        },
+        "env": {
+          "ELECTRON_RUN_AS_NODE": null
+        },
+        "modulesDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node_modules",
+        "sqlite": {
+          "ok": true,
+          "journalMode": "wal",
+          "walExists": true,
+          "row": {
+            "seq": 1,
+            "body": "s6-node-1793562719695"
+          },
+          "nativePath": "<home>/AppData/Local/Programs/agent-studio-s6-installer/resources/runtime/node_modules/better-sqlite3/prebuilds"
+        },
+        "pty": {
+          "ok": true,
+          "exitCode": 0,
+          "output": "s6-pty-ok",
+          "backend": "unknown"
+        }
+      },
+      "monaco_diff": {
+        "step": "monaco_diff",
+        "t": 3020,
+        "ok": true,
+        "how": "onDidUpdateDiff",
+        "workerMode": "getWorkerUrl",
+        "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        "lineChanges": 1,
+        "monacoLoadMs": 93,
+        "diffReadyMs": 130,
+        "workerErrors": [],
+        "workerCount": "n/a",
+        "cspViolations": [],
+        "cspViolationCount": 0,
+        "cspDirectivesHit": []
+      },
+      "memory": {
+        "step": "memory",
+        "t": 3021,
+        "ok": true,
+        "processes": [
+          {
+            "type": "Browser",
+            "pid": 19124,
+            "workingSetMB": 109
+          },
+          {
+            "type": "GPU",
+            "pid": 22060,
+            "workingSetMB": 97
+          },
+          {
+            "type": "Utility",
+            "pid": 37652,
+            "workingSetMB": 46
+          },
+          {
+            "type": "Tab",
+            "pid": 39828,
+            "workingSetMB": 143
+          }
+        ],
+        "totalWorkingSetMB": 395
+      }
+    }
+  },
+  "run_monaco-style-only": {
+    "ms": 11593,
+    "steps": {
+      "electron_start": {
+        "step": "electron_start",
+        "t": 74,
+        "ok": true,
+        "cspVariant": "monaco-style-only",
+        "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        "electron": "45.2.1",
+        "node": "24.22.1",
+        "modulesAbi": "150",
+        "isPackaged": true,
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "resourcesPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources",
+        "userData": "<home>\\AppData\\Roaming\\agent-studio-s6-installer",
+        "fuses": {
+          "runAsNodeExpected": true
+        }
+      },
+      "keyring": {
+        "step": "keyring",
+        "t": 97,
+        "ok": true,
+        "backend": "windows credential manager (expected)",
+        "roundTrip": true,
+        "deleted": true
+      },
+      "daemon_electron_run_as_node": {
+        "step": "daemon_electron_run_as_node",
+        "t": 1417,
+        "ok": true,
+        "ms": 1318,
+        "exe": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "runtime": "electron",
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\AgentStudioS6Spike.exe",
+        "pid": 43120,
+        "versions": {
+          "node": "24.22.1",
+          "electron": "45.2.1",
+          "modules": "150",
+          "napi": "10"
+        },
+        "env": {
+          "ELECTRON_RUN_AS_NODE": "1"
+        },
+        "modulesDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\app.asar.unpacked\\node_modules",
+        "sqlite": {
+          "ok": true,
+          "journalMode": "wal",
+          "walExists": true,
+          "row": {
+            "seq": 1,
+            "body": "s6-electron-1793562723451"
+          },
+          "nativePath": "<home>/AppData/Local/Programs/agent-studio-s6-installer/resources/app.asar.unpacked/node_modules/better-sqlite3/prebuilds"
+        },
+        "pty": {
+          "ok": true,
+          "exitCode": 0,
+          "output": "s6-pty-ok",
+          "backend": "unknown"
+        }
+      },
+      "daemon_bundled_node": {
+        "step": "daemon_bundled_node",
+        "t": 2728,
+        "ok": true,
+        "ms": 1309,
+        "exe": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node.exe",
+        "runtime": "node",
+        "execPath": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node.exe",
+        "pid": 1772,
+        "versions": {
+          "node": "24.21.0",
+          "electron": null,
+          "modules": "137",
+          "napi": "10"
+        },
+        "env": {
+          "ELECTRON_RUN_AS_NODE": null
+        },
+        "modulesDir": "<home>\\AppData\\Local\\Programs\\agent-studio-s6-installer\\resources\\runtime\\node_modules",
+        "sqlite": {
+          "ok": true,
+          "journalMode": "wal",
+          "walExists": true,
+          "row": {
+            "seq": 1,
+            "body": "s6-node-1793562724765"
+          },
+          "nativePath": "<home>/AppData/Local/Programs/agent-studio-s6-installer/resources/runtime/node_modules/better-sqlite3/prebuilds"
+        },
+        "pty": {
+          "ok": true,
+          "exitCode": 0,
+          "output": "s6-pty-ok",
+          "backend": "unknown"
+        }
+      },
+      "monaco_diff": {
+        "step": "monaco_diff",
+        "t": 11044,
+        "ok": false,
+        "how": "timeout-8s",
+        "workerMode": "getWorker-direct",
+        "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+        "lineChanges": null,
+        "monacoLoadMs": 114,
+        "diffReadyMs": 8118,
+        "workerErrors": [
+          "Uncaught [object Event]",
+          "Uncaught [object Event]"
+        ],
+        "workerCount": "n/a",
+        "cspViolations": [
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          },
+          {
+            "directive": "worker-src",
+            "blocked": "blob",
+            "source": "app:1",
+            "sample": ""
+          }
+        ],
+        "cspViolationCount": 4,
+        "cspDirectivesHit": [
+          "worker-src"
+        ]
+      },
+      "memory": {
+        "step": "memory",
+        "t": 11045,
+        "ok": true,
+        "processes": [
+          {
+            "type": "Browser",
+            "pid": 19616,
+            "workingSetMB": 108
+          },
+          {
+            "type": "GPU",
+            "pid": 40112,
+            "workingSetMB": 94
+          },
+          {
+            "type": "Utility",
+            "pid": 43468,
+            "workingSetMB": 46
+          },
+          {
+            "type": "Tab",
+            "pid": 44972,
+            "workingSetMB": 116
+          }
+        ],
+        "totalWorkingSetMB": 364
+      }
+    }
+  },
+  "uninstall": {
+    "installDirGone": true,
+    "userDataGone": [
+      {
+        "dir": "<home>\\AppData\\Roaming\\AgentStudioS6Spike",
+        "gone": true
+      },
+      {
+        "dir": "<home>\\AppData\\Roaming\\agent-studio-s6-installer",
+        "gone": true
+      }
+    ]
+  }
+}

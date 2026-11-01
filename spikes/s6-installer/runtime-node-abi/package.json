@@ -1,0 +1,11 @@
+{
+  "name": "agent-studio-s6-node-abi",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Native modules built for the bundled Node runtime ABI (copied into resources/runtime/node_modules by prepare-runtime.js)",
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "node-pty": "1.1.0",
+    "ws": "^8.22.1"
+  }
+}

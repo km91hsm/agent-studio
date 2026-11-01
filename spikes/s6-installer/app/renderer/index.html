@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- SECURITY_MODEL §7 CSP 정본(그대로). 완화가 필요한 항목은 securitypolicyviolation 이벤트로 수집해 보고한다 -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
+    <title>S6 spike</title>
+    <link rel="stylesheet" href="app://bundle/monaco/vs/editor/editor.main.css" />
+    <style>
+      html, body { margin: 0; height: 100%; }
+      #diff { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="diff"></div>
+    <script src="app://bundle/renderer/csp-collect.js"></script>
+    <script src="app://bundle/monaco/vs/loader.js"></script>
+    <script src="app://bundle/renderer/renderer.js"></script>
+  </body>
+</html>

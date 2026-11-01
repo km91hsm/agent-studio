@@ -18,3 +18,7 @@ dist/
 spikes/**/.tmp/
 .env.local
 *.local.*
+
+# S6 installer spike artifacts
+spikes/s6-installer/runtime/
+spikes/s6-installer/dist/

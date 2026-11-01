@@ -1,0 +1,66 @@
+{
+  "name": "agent-studio-s6-installer",
+  "version": "0.0.1",
+  "private": true,
+  "description": "P00 S6 installer spike: Electron + better-sqlite3 + node-pty + Monaco/CSP + daemon runtime comparison (throwaway)",
+  "main": "app/main.js",
+  "scripts": {
+    "prepare-runtime": "node scripts/prepare-runtime.js",
+    "start": "electron . --spike-run",
+    "build": "npm run prepare-runtime && electron-builder --win nsis --x64",
+    "rebuild-electron": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0"
+  },
+  "dependencies": {
+    "@napi-rs/keyring": "^2.1.2",
+    "better-sqlite3": "13.0.3",
+    "monaco-editor": "0.57.0",
+    "node-pty": "1.1.0",
+    "ws": "^8.22.1"
+  },
+  "build": {
+    "appId": "local.agentstudio.s6spike",
+    "productName": "AgentStudioS6Spike",
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "node_modules/**/*",
+      "!node_modules/monaco-editor/esm/**",
+      "!node_modules/monaco-editor/dev/**",
+      "!node_modules/monaco-editor/monaco.d.ts"
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "extraResources": [
+      { "from": "runtime/", "to": "runtime/", "filter": ["*"] },
+      { "from": "runtime/node_modules/", "to": "runtime/node_modules/" }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": true,
+      "artifactName": "AgentStudioS6Spike-Setup.exe"
+    },
+    "electronFuses": {
+      "runAsNode": true,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    }
+  }
+}
