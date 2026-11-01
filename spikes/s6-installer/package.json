@@ -40,7 +40,7 @@
       "**/*.node"
     ],
     "extraResources": [
-      { "from": "runtime/", "to": "runtime/", "filter": ["*"] },
+      { "from": "runtime/", "to": "runtime/", "filter": ["**/*", "!node_modules/**"] },
       { "from": "runtime/node_modules/", "to": "runtime/node_modules/" }
     ],
     "win": {

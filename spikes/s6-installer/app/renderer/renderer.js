@@ -5,9 +5,12 @@
     window.s6.report({
       step: "monaco_diff",
       ...extra,
+      // 저장 표본은 40건까지, 총계는 cspViolationCount(리뷰 #8)
       cspViolations: window.__s6Violations.slice(0, 40),
       cspViolationCount: window.__s6Violations.length,
       cspDirectivesHit: [...new Set(window.__s6Violations.map((v) => v.directive))],
+      workers: window.__s6Workers.slice(0, 10),
+      workerCount: window.__s6Workers.length,
     });
 
   if (typeof require !== "function" || !require.config) {
@@ -47,7 +50,6 @@
         monacoLoadMs: Math.round(t1 - t0),
         diffReadyMs: Math.round(t2 - t1),
         workerErrors: workerErrors.slice(0, 10),
-        workerCount: typeof navigator !== "undefined" ? "n/a" : null,
       });
     };
     diff.onDidUpdateDiff(() => done("onDidUpdateDiff"));

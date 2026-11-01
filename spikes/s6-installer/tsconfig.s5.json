@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "runtime/s5",
+    "rootDir": "../s5-daemon",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "typeRoots": ["../../node_modules/@types"],
+    "lib": ["ES2023"]
+  },
+  "files": ["../s5-daemon/daemon.ts", "../s5-daemon/protocol.ts"]
+}
