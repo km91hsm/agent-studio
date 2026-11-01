@@ -1,0 +1,105 @@
+{
+  "firstLaunch": {
+    "pid": 19796,
+    "startedAt": "2026-11-01T19:13:33.4948370Z",
+    "nonce": "1e622a02b95901e6a25fb100ddd800bb",
+    "port": 1767,
+    "protocolVersion": 1,
+    "tokenRef": "<home>\\AppData\\Local\\Temp\\s5-daemon-OMdo9C\\token",
+    "spawned": true
+  },
+  "seqAfterLauncherExit": {
+    "first": 20,
+    "later": 24,
+    "daemonPid": 19796,
+    "nonce": "1e622a02b95901e6a25fb100ddd800bb"
+  },
+  "daemonProcess": {
+    "pid": 19796,
+    "ppid": 10236,
+    "startedAt": "2026-11-01T19:13:33.4948370Z",
+    "name": "node.exe"
+  },
+  "secondLaunch": {
+    "pid": 19796,
+    "startedAt": "2026-11-01T19:13:33.4948370Z",
+    "nonce": "1e622a02b95901e6a25fb100ddd800bb",
+    "port": 1767,
+    "protocolVersion": 1,
+    "tokenRef": "<home>\\AppData\\Local\\Temp\\s5-daemon-OMdo9C\\token",
+    "assessment": {
+      "verdict": "live"
+    },
+    "spawned": false
+  },
+  "treeBeforeShutdown": [
+    {
+      "pid": 41436,
+      "ppid": 19796,
+      "startedAt": "2026-11-01T19:13:33.6433880Z",
+      "name": "esbuild.exe"
+    },
+    {
+      "pid": 29988,
+      "ppid": 41436,
+      "startedAt": "2026-11-01T19:13:33.6540610Z",
+      "name": "conhost.exe"
+    },
+    {
+      "pid": 1724,
+      "ppid": 19796,
+      "startedAt": "2026-11-01T19:13:42.7843100Z",
+      "name": "node.exe"
+    },
+    {
+      "pid": 27852,
+      "ppid": 1724,
+      "startedAt": "2026-11-01T19:13:42.7949560Z",
+      "name": "conhost.exe"
+    },
+    {
+      "pid": 30512,
+      "ppid": 1724,
+      "startedAt": "2026-11-01T19:13:42.8526300Z",
+      "name": "node.exe"
+    },
+    {
+      "pid": 15968,
+      "ppid": 19796,
+      "startedAt": "2026-11-01T19:13:42.7951480Z",
+      "name": "node.exe"
+    },
+    {
+      "pid": 43972,
+      "ppid": 15968,
+      "startedAt": "2026-11-01T19:13:42.8027570Z",
+      "name": "conhost.exe"
+    },
+    {
+      "pid": 44792,
+      "ppid": 15968,
+      "startedAt": "2026-11-01T19:13:42.8579710Z",
+      "name": "node.exe"
+    }
+  ],
+  "shutdownReply": {
+    "id": 4,
+    "ok": true,
+    "killed": [
+      {
+        "pid": 1724,
+        "method": "taskkill /T /F",
+        "ok": true,
+        "detail": "terminated PIDs: 27852,1724,30512,19796"
+      },
+      {
+        "pid": 15968,
+        "method": "taskkill /T /F",
+        "ok": true,
+        "detail": "terminated PIDs: 43972,15968,44792,19796"
+      }
+    ]
+  },
+  "aliveAfterShutdown": [],
+  "lockAfterShutdown": null
+}
