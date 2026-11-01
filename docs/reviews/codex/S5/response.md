@@ -1,0 +1,12 @@
+| # | 심각도 | 위치(파일:행) | 문제 | 제안 |
+|---|---|---|---|---|
+| 1 | High | [launcher.ts](</D:/LLM/agent-studio/spikes/s5-daemon/launcher.ts:142>) | 위조된 락이 실제 프로세스의 PID·시작 시각과 공격자 서버의 포트를 담으면, launcher는 서버 신원을 확인하기 전에 토큰을 전송합니다. nonce도 락에 공개되어 있고 `welcome.pid`는 검사하지 않습니다. 따라서 현재 검증만으로 락 위조를 방어한다는 결론은 성립하지 않습니다. | 토큰 전송 전에 서버 신원을 확인할 수 있는 인증 설계와 락 파일 접근 통제를 마련하고, 위조 서버 테스트를 추가하세요. |
+| 2 | High | [launcher.ts](</D:/LLM/agent-studio/spikes/s5-daemon/launcher.ts:123>) | 락의 `rename`은 쓰기 원자성만 제공합니다. launcher 둘이 동시에 기동하면 둘 다 락을 지우고 데몬을 띄울 수 있어 단일 데몬을 보장하지 못합니다. | 기동 전 배타 락을 확보하고, 락 교체·삭제 시 소유자를 재확인하세요. 동시 launcher 테스트가 필요합니다. |
+| 3 | High | [launcher.ts](</D:/LLM/agent-studio/spikes/s5-daemon/launcher.ts:145>) | 접속 실패와 프로토콜 버전 불일치를 모두 `nonce_mismatch`로 처리하고 기존 락을 삭제합니다. 살아 있는 구버전 데몬 옆에 새 데몬을 띄울 수 있으며, 정본의 버전 불일치 시 접속 거부 계약과 어긋납니다. | 오류 원인을 구분하고, 프로토콜 불일치·일시적 접속 실패에서는 기존 데몬을 보존한 채 명시적 오류를 반환하세요. |
+| 4 | Medium | [s5.test.ts](</D:/LLM/agent-studio/spikes/s5-daemon/s5.test.ts:69>) | 첫 launcher는 별도 프로세스로 종료되지만, “두 번째 launcher”는 Vitest 워커에서 `ensureDaemon()`을 직접 호출합니다. 보고서의 별도 launcher 재접속 표현보다 증거 범위가 좁습니다. | 두 번째도 별도 launcher 프로세스로 실행해 반환 핸들과 동일 데몬 재접속을 단언하세요. |
+| 5 | Medium | [s5.test.ts](</D:/LLM/agent-studio/spikes/s5-daemon/s5.test.ts:77>) | `welcome.seq ≥ 이전 status.seq`는 역행 방지만 확인합니다. 누락 없는 seq 연속성이나 재접속 중 이벤트 복구는 확인하지 않습니다. | 연속 이벤트를 단언하거나, 보고서의 “seq 연속”을 “재접속 후 seq 역행 없음”으로 한정하세요. |
+| 6 | Medium | [s5.test.ts](</D:/LLM/agent-studio/spikes/s5-daemon/s5.test.ts:30>) | 첫 테스트 뒤 둘째 테스트 전에 실패하면 `handle`이 없어 `afterAll`이 데몬을 정리하지 못합니다. 반대로 `handle.pid`만 믿고 `taskkill`하면 종료 후 PID가 재사용된 다른 프로세스를 죽일 수 있습니다. | 기동 직후 PID·시작 시각·nonce를 정리용으로 보관하고, 종료 전 신원을 재검증하세요. |
+| 7 | Medium | [s5.test.ts](</D:/LLM/agent-studio/spikes/s5-daemon/s5.test.ts:81>) | 잘못된 토큰만 시험합니다. 토큰 없는 hello, 3초 hello 타임아웃, 프로토콜 불일치의 거부 동작은 코드에 있으나 테스트 증거가 없습니다. | 각 close code와 welcome 미전송을 단언하세요. |
+| 8 | Low | [S5.md](</D:/LLM/agent-studio/docs/spikes/S5.md:23>) | 콘솔 창 미표시는 수동 관찰 대기인데 전체 판정은 `pass`입니다. `assessLock`의 ±2초 허용 근거도 제시되지 않았고, 잘못된 날짜는 `NaN` 비교를 통과할 수 있습니다. | 콘솔 확인 전에는 해당 항목을 미검증으로 유지하고, 날짜 유효성 검사와 허용 오차 근거를 추가하세요. |
+
+**판정: 수정 후 수용.** 별도 첫 launcher 종료 후 5초 접속, seq 증가, CIM으로 관찰한 기존 자손의 정상 shutdown 후 소멸은 코드와 픽스처가 뒷받침합니다. R16의 “정상 종료 경로에서 명시 kill로 충분, 크래시 경로 미해결”도 관찰 범위에 맞습니다. 픽스처·보고서에서 실제 홈 경로, 사용자명, 호스트명 노출은 확인되지 않았습니다. 다만 락 위조 시 토큰 노출 가능성, 중복 기동, 버전 불일치 처리 때문에 현재의 무조건적인 S5 `pass`는 수용하기 어렵습니다. 토큰 파일 사용은 스파이크 한정으로 명시되어 있으나, 그 실험만으로 제품 키링 기반 인증의 안전성을 입증할 수는 없습니다.

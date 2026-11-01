@@ -1,16 +1,16 @@
 /**
- * S5 — detached 데몬(스파이크). 127.0.0.1 WS JSON 서버 + 토큰 핸드셰이크 + seq 틱 + 더미 자식 프로세스 + shutdown 시 트리 정리.
+ * S5 — detached 데몬(스파이크). 127.0.0.1 WS JSON 서버 + HMAC 상호 인증 핸드셰이크(protocol.ts) + seq 틱 + 더미 자식 프로세스 + shutdown 시 트리 정리.
  * 기동: node --import tsx daemon.ts --dir <stateDir>   (launcher가 detached/stdio:'ignore'/windowsHide로 띄운다)
  * 락 파일 `<stateDir>/daemon.lock` = { pid, startedAt(OS 프로세스 생성 시각, UTC ISO), nonce, port, protocolVersion }
- * 토큰 `<stateDir>/token` — launcher가 기동 전에 쓴다(제품에서는 키링; 여기서는 tokenRef = 파일 경로).
+ * 토큰 `<stateDir>/token` — launcher가 기동 전에 쓴다(제품에서는 키링; 여기서는 tokenRef = 파일 경로). 토큰은 네트워크로 전송되지 않는다.
  */
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { appendFileSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
+import { HELLO_TIMEOUT_MS, PROTOCOL_VERSION, proof, proofEquals } from "./protocol.js";
 
-export const PROTOCOL_VERSION = 1;
 export interface LockFile {
   pid: number;
   startedAt: string;
@@ -60,28 +60,39 @@ setInterval(() => {
 }, 250);
 
 wss.on("connection", (ws) => {
-  const timer = setTimeout(() => ws.close(4002, "hello timeout"), 3_000);
-  ws.once("message", (raw) => {
-    clearTimeout(timer);
-    let hello: { type?: string; token?: string; protocolVersion?: number } = {};
+  const timer = setTimeout(() => ws.close(4002, "hello timeout"), HELLO_TIMEOUT_MS);
+  let stage: "hello" | "auth" | "done" = "hello";
+  let serverNonce = "";
+  let clientNonce = "";
+  ws.on("message", (raw) => {
+    if (stage === "done") return handle(ws, JSON.parse(String(raw)));
+    let msg: { type?: string; clientNonce?: string; protocolVersion?: number; clientProof?: string } = {};
     try {
-      hello = JSON.parse(String(raw));
+      msg = JSON.parse(String(raw));
     } catch {}
-    if (hello.type !== "hello" || hello.token !== token) {
-      log(`reject unauthorized`);
-      ws.close(4001, "unauthorized");
+    if (stage === "hello") {
+      clearTimeout(timer);
+      if (msg.type !== "hello" || typeof msg.clientNonce !== "string" || !msg.clientNonce) return reject(ws, 4001, "unauthorized");
+      if (msg.protocolVersion !== PROTOCOL_VERSION) return reject(ws, 4003, `protocol mismatch: daemon=${PROTOCOL_VERSION}`);
+      clientNonce = msg.clientNonce;
+      serverNonce = randomBytes(16).toString("hex");
+      stage = "auth";
+      ws.send(JSON.stringify({ type: "challenge", serverNonce, nonce, pid: process.pid, serverProof: proof(token, serverNonce, clientNonce, "server") }));
       return;
     }
-    if (hello.protocolVersion !== PROTOCOL_VERSION) {
-      ws.close(4003, `protocol mismatch: daemon=${PROTOCOL_VERSION}`);
-      return;
-    }
+    // stage === "auth"
+    if (msg.type !== "auth" || !proofEquals(msg.clientProof, proof(token, serverNonce, clientNonce, "client"))) return reject(ws, 4001, "unauthorized");
+    stage = "done";
     authed.add(ws);
     ws.send(JSON.stringify({ type: "welcome", seq, pid: process.pid, nonce, protocolVersion: PROTOCOL_VERSION }));
-    ws.on("message", (raw2) => handle(ws, JSON.parse(String(raw2))));
     ws.on("close", () => authed.delete(ws));
   });
 });
+
+function reject(ws: WebSocket, code: number, reason: string) {
+  log(`reject ${code} ${reason}`);
+  ws.close(code, reason);
+}
 
 function handle(ws: WebSocket, msg: { id?: number; type: string; count?: number; withGrandchild?: boolean }) {
   const reply = (body: Record<string, unknown>) => ws.send(JSON.stringify({ id: msg.id, ok: true, ...body }));
