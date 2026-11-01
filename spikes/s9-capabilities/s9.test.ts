@@ -62,6 +62,12 @@ describe("S9 capability probe — 결과 계약 (CI)", () => {
     // 최종 리뷰 #2: 결과 픽스처도 mask() 를 거쳐야 하고, MCP toolsError 의 Cloudflare 챌린지 본문·토큰은 남지 않아야 한다
     expect(raw).not.toMatch(/__cf_chl_tk=(?!<cf-token>)|cRay: '(?!<cf-token>)/);
     for (const d of Object.values(j.raw.codex)) for (const r of d.mcp.rows) if (typeof r.toolsError === "string") expect(r.toolsError.length, `${r.name} toolsError`).toBeLessThan(400);
+    // fix pass 회귀: 재마스킹이 녹화의 JSON 줄을 깨지 않아야 한다(녹화 당시 30,000자 절단 표식이 있는 줄만 제외)
+    for (const name of ["computer-use", "documents", "imagegen", "isolated-home", "shared", "shared-mcp-override"]) {
+      const lines = readFileSync(`${RECORDINGS}codex-0.166.0/s9-codex-${name}.jsonl`, "utf8").split("\n").filter((l) => l.trim());
+      expect(lines.length, name).toBeGreaterThan(0);
+      for (const [i, l] of lines.entries()) if (!/\[truncated \d+ chars\]/.test(l)) expect(() => JSON.parse(l), `${name}.jsonl line ${i + 1}`).not.toThrow();
+    }
     // Codex 리뷰 #3: CAP-08 codex 의 reached 는 s9_probe 행(핸드셰이크·도구 수)에서 도출된 값이어야 한다(이름 등장만으로 started 금지)
     const probeRow = j.raw.codex.sharedMcpOverride.mcp.rows.find((r) => r.name === "s9_probe");
     const cap08 = j.results.find((r) => r.cap === "CAP-08" && r.agent === "codex")!;

@@ -143,7 +143,7 @@ P01 착수는 이 문서와 보고서 11건을 사용자가 검토하고 §6 결
 | # | 등급(리뷰어→재등급) | 지적 | 처리 |
 |---|---|---|---|
 | 1 | Important | 공개 `main` 이력에 S0 커밋 `8c1de76` diff 의 사용자명 5건, S2/S4 커밋 diff 의 SDK 세션 id 잔존(HEAD 트리는 0건) | **결정 항목으로 등록** — §6 #15. 이력 재작성(force-push)은 세션 밖 부작용이라 하지 않음 |
-| 2 | Important | Cloudflare 챌린지 토큰(`__cf_chl_tk`, `cRay` 등)·403 HTML 본문이 S9 결과 픽스처(`toolsError` 17,468자)·녹화 3개·리뷰 로그(archive 19·reviews 8)에 잔존, 결과 픽스처가 `mask()` 미경유 | **수정** — `mask.ts` CF 규칙 2개 + `truncateErrorBody`(200자 상한), `probe.ts` McpRow `toolsError` 절단, `s9.test.ts` 픽스처 쓰기 `mask()` 경유 + 계약 단언 2건, `mask_archive.py` 동일 규칙; 픽스처·녹화는 LIVE 재실행 없이 재마스킹(S9.md §6) |
+| 2 | Important | Cloudflare 챌린지 토큰(`__cf_chl_tk`, `cRay` 등)·403 HTML 본문이 S9 결과 픽스처(`toolsError` 17,468자)·녹화 3개·리뷰 로그(archive 19·reviews 8)에 잔존, 결과 픽스처가 `mask()` 미경유 | **수정** — `mask.ts` CF 규칙 2개 + `truncateErrorBody`(200자 상한), `probe.ts` McpRow `toolsError` 절단, `s9.test.ts` 픽스처 쓰기 `mask()` 경유 + 계약 단언 2건, `mask_archive.py` 동일 규칙; 픽스처·녹화는 LIVE 재실행 없이 재마스킹(S9.md §6). 첫 적용 커밋 4bc1f4f 의 `md` 키 오탐(파일명 `.md: "…"`)으로 녹화 1줄이 깨져 후속 커밋에서 규칙 보정·데이터 복원·재마스킹 + 녹화 JSON 유효성 CI 테스트 추가 |
 | 3 | Important | `judge()`가 승인 요청·효과 모두 없는 턴을 시도 여부와 무관하게 `blocked`로 판정 | **수정** — `Observation.attempted` + `inconclusive` 값 추가(시도 증거 없으면 `blocked` 금지), LIVE 하네스는 `requestApproval` 만 승인으로 집계·commandExecution/fileChange(Codex)·쓰기 도구 PreToolUse(Claude)를 시도 증거로 전달. 커밋된 S4 픽스처의 `blocked` 행은 전부 `cmds:` 기록이 있어 재실행 불필요(CI 테스트로 고정) |
 | 4 | Important | §5 V13 "해소"는 S2 자체 판정(부분)보다 높음 | **수정** — "부분 해소"로 이동 |
 | 5 | Important | AC-P00-7b "충족" vs S4.md 자체 판정 "부분" | **수정** — "충족(Windows 조합 한정)"으로 범위 명시 |

@@ -9,7 +9,8 @@ const SESSION_ID_FIELD = /"session(?:_id|Id)"\s*:\s*"([0-9a-f]{8}-[0-9a-f]{4}-[0
 const USERS_SEGMENT = /(\bUsers(?:\\{1,4}|\/)+)(?!<user>)[^\\/"'\s<]+/g;
 /** Cloudflare 챌린지(원격 MCP 403 HTML)의 요청 상관 토큰: 질의 `__cf_chl_tk=…` 와 챌린지 옵션 객체의 cH/cRay/md 등 값(JS 객체 리터럴 형태만 — JSON 키 `"md":` 는 제외) */
 const CF_QUERY = /(__cf_chl_tk|__cf_chl_rt_tk|__cf_chl_f_tk|cf_chl_rc_i)=(?!<cf-token>)[^&"'\s<\\]+/g;
-const CF_OPTS = /\b(cH|cRay|md|mdrd|cUPMDTk|cFPWv|cNounce|cTplV|cZone|cvId|cITimeS)(\s*:\s*)(['"])(?!<cf-token>)(?:(?!\3).)*\3/g;
+// 키 앞은 단어·`.` 금지(파일명 `README.md: "…"` 오탐 방지). 따옴표 앞의 JSON 이스케이프 `\` 를 캡처해 닫는 쪽에도 복원하고, 값 안에는 따옴표·백슬래시를 허용하지 않는다(JSON 녹화를 깨지 않음; `\/` 경로 값은 CF_QUERY 가 토큰만 가린다)
+const CF_OPTS = /(?<![\w.])(cH|cRay|md|mdrd|cUPMDTk|cFPWv|cNounce|cTplV|cZone|cvId|cITimeS)(\s*:\s*)(\\?)(['"])(?!<cf-token>)[^'"\\\n]*\3\4/g;
 
 /** 녹화 픽스처 커밋 전 마스킹: 홈 경로(1·2·4중 백슬래시, 슬래시)·사용자명·호스트명·thread id·Claude session id·토큰 패턴. */
 export function mask(text: string): string {
@@ -28,7 +29,7 @@ export function mask(text: string): string {
   const sessionIds = new Set<string>();
   for (const m of out.matchAll(SESSION_ID_FIELD)) sessionIds.add(m[1]);
   for (const id of sessionIds) out = out.split(id).join("<session-id>");
-  return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>").replace(INSTALLATION_ID, "$1<installation-id>$2").replace(CF_QUERY, "$1=<cf-token>").replace(CF_OPTS, "$1$2$3<cf-token>$3");
+  return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>").replace(INSTALLATION_ID, "$1<installation-id>$2").replace(CF_QUERY, "$1=<cf-token>").replace(CF_OPTS, "$1$2$3$4<cf-token>$3$4");
 }
 
 /** 긴 오류 본문(원격 MCP 403 HTML 챌린지 등)을 상한에서 잘라 길이만 남긴다 — 결과 픽스처의 `toolsError`·녹화의 startupStatus error 에 공통 적용 */

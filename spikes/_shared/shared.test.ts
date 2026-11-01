@@ -44,6 +44,15 @@ describe("_shared", () => {
     expect(s).toContain("cRay: '<cf-token>'");
     expect(s).toContain('"md":"ok"'); // JSON 키 형태는 건드리지 않는다
   });
+  it("mask: Cloudflare 키 규칙은 파일명 `.md:` 나 JSON 이스케이프된 값(\\\")을 건드리지 않는다 — JSON 녹화를 깨지 않는다(fix pass 회귀)", () => {
+    const line = 'README.md: IO error: "},"emittedAtMs":1793572861077}}';
+    expect(mask(line)).toBe(line);
+    const s = JSON.stringify({ e: 'opt={cUPMDTk:"/x?__cf_chl_tk=abc.def-1",cFPWv:"g",md: "lUo5tYi"}' });
+    const m = mask(s);
+    expect(() => JSON.parse(m)).not.toThrow();
+    expect(m).not.toMatch(/abc\.def|lUo5/);
+    expect(JSON.parse(m).e).toBe('opt={cUPMDTk:"<cf-token>",cFPWv:"<cf-token>",md: "<cf-token>"}'); // 이스케이프된 값도 통째로 가리고 따옴표 이스케이프는 보존
+  });
   it("truncateErrorBody: 긴 오류 본문(HTML 챌린지)을 상한에서 잘라 길이만 남긴다", () => {
     const long = "MCP startup failed: " + "<html><body>" + "x".repeat(5000) + "</body></html>";
     const t = truncateErrorBody(long, 200);
