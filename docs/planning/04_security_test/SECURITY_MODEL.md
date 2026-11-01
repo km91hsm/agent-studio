@@ -2,11 +2,11 @@
 
 | 메타 | 값 |
 |---|---|
-| 상태 | FINAL (2026-11-01) |
+| 상태 | FINAL (2026-11-01) · §2.1 보장 수준 표 P00 실측 갱신 (2026-11-02, `docs/spikes/P00_GATE.md` §3) |
 | 요구사항 | REQ-SEC-01~06, REQ-PM-08, REQ-SK-07, REQ-OPS-05 |
 | 공식 조사 | `archive/evidence/research/RESEARCH_DESKTOP_STACK.md`(Electron 보안·샌드박스), 공급자 문서(code.claude.com sandboxing, learn.chatgpt.com windows-sandbox) |
 | 핵심 결론 | 승인 요청(`requestApproval`/`canUseTool`)은 **정책이 요구할 때만** 발생하므로 "모든 부작용의 관문"이 아니다. 고위험 효과(원격 Git·DB·설치·배포·외부 서비스)의 **정식 경로는 앱 전용 실행기**이며, 그 경로만 통과한다는 보장은 **엄격 모드에서만**(§2.1 `ENFORCED`) 성립한다. 일반·자동 모드에서는 승인 경계 + 공급자 샌드박스 + 사후 감사(`DETECTED`) 또는 정책 판정만(`POLICY_ONLY`)이다 |
-| UNVERIFIED | 설치 버전의 승인·sandbox 동작과 최신 문서 일치, Codex Windows `sandbox="elevated"` 실제 차단(S4), `readOnly`에서 명령 실행이 승인 요청으로만 가능한지(S1c), CLI 자체 세션 로그 통제 — 해소 Task는 OPEN_ISSUES_AND_RISKS §2 |
+| UNVERIFIED | **P00 실측으로 해소(2026-11-02)**: Codex Windows `sandbox="elevated"` 실제 차단(S4 — 외부 경로·외부 호스트 ENFORCED, TEMP 상위·loopback 통과), `readOnly`에서 명령 실행이 승인 요청으로만 가능한지(S1c — **부정**: 읽기 명령은 무승인 실행), `-c mcp_servers` 제거 여부(S9 — 추가만). **잔존**: 설치 버전(0.166.0 / 2.1.316)과 최신 문서 일치는 실측 시점 기준(추적은 P05), CLI 자체 세션 로그 통제(V32), Claude WSL2 sandbox(S4 미실측), 고위험 효과 우회 경로(MCP·Hook·설치 스크립트) 시험 — 해소 Task는 OPEN_ISSUES_AND_RISKS §2 |
 
 ## 1. 위협 모델
 
@@ -73,27 +73,29 @@
 
 각 셀은 **집행자(메커니즘) / 관찰 이벤트 / 우회 시험**을 적는다. 메커니즘을 명명할 수 없는 셀은 `POLICY_ONLY` 또는 `UNVERIFIED`로 둔다. 자동 모드는 별도 열이 아니라 **각 공급자×OS 열의 값에서 "승인 콜백" 집행자를 뺀 값**이다.
 
+**갱신 이력**: 2026-11-02 P00 종료 게이트 — S1c(V30)·S2(plan 정책)·S4(V29, 격리 게이트)·S9(V31) 실측 반영. 이 표에 `UNVERIFIED` 셀은 남아 있지 않다. 실측 범위 밖(WSL2, `unelevated` 변형, API key 모드, 우회 경로 시험)은 셀 안에 "미실측"으로 표시한다. 근거: `docs/spikes/S1c.md` §2, `S2.md` §2, `S4.md` §2, `S9.md` §2, `P00_GATE.md` §3.
+
 | 영역 | Codex 엄격(readOnly + 앱 적용기) | Codex 일반(workspaceWrite, Win sandbox) | Claude native Windows | Claude WSL2/Linux/macOS(sandbox) |
 |---|---|---|---|---|
-| 파일 시스템(외부 경로) | ENFORCED — 집행자: `readOnly` 샌드박스(쓰기 자체 없음) / 관찰: `fileChange` 0·사후 diff `AuditSignal{unapproved_write}` / 시험: S4·SE-06b | ENFORCED(S4 합격 시) — 집행자: Windows sandbox `writableRoots` / 관찰: 사후 diff `AuditSignal{unapproved_write}` / 시험: S4·SE-06b. S4 미합격 → DETECTED(같은 관찰) | POLICY_ONLY — 집행자 없음(`canUseTool` deny는 자동 허용 도구 미경유) / 관찰: 사후 diff `AuditSignal{unapproved_write}` / 시험: SE-06b | ENFORCED(Bash — sandbox FS) + POLICY_ONLY(파일 도구는 `canUseTool` 판정만) / 관찰: 사후 diff / 시험: S4(WSL2)·SE-06b |
-| 실행 명령 | **UNVERIFIED → S1c·S4** — 집행자 후보: `readOnly`에서 `commandExecution`이 승인 요청으로만 가능한지 실측; 전까지 POLICY_ONLY / 관찰: `ProcessObserved`·`GitCommandRun` / 시험: S1c | DETECTED — 집행자: 브로커(승인 요청이 발생한 명령만 ENFORCED) / 관찰: `ProcessObserved`·`GitCommandRun` / 시험: SE-02·SE-08 | POLICY_ONLY — 집행자: `canUseTool`(Bash 요청이 올 때만) / 관찰: `ProcessObserved` / 시험: SE-08 | ENFORCED(sandbox 범위: FS·네트워크; 명령 실행 자체는 허용) / 관찰: `ProcessObserved` / 시험: S4(WSL2)·SE-08 |
-| 네트워크 | ENFORCED(S4 합격 시) — 집행자: Windows sandbox 네트워크 차단 / 관찰: 로컬 수신 서버 로그 0건·`AuditSignal{external_call_detected}` / 시험: S4·SE-07 | ENFORCED(S4 합격 시) — 동일 집행자·관찰·시험; 미합격 시 DETECTED(수신 서버 로그) | POLICY_ONLY — 집행자 없음 / 관찰: 수신 서버 로그·`AuditSignal{external_call_detected}` / 시험: SE-07(DETECTED 조합) | ENFORCED(Bash — sandbox 네트워크 차단) / 관찰: 동일 / 시험: S4(WSL2)·SE-07 |
-| 원격 Git·DB·설치·배포·외부 서비스 | **S1c·S4 실측 전 DETECTED**. 실측 후 조건 충족 시 ENFORCED 조건부 — 집행자: readOnly 샌드박스(명령 실행이 승인 요청 없이는 불가함이 S1c에서 확인) + S4 합격(해당 OS) + 앱 실행기 정식 경로 + 사용자 설정 MCP·Hook 제외(분리 프로필 또는 allowlist 공집합) / 관찰: `AuditSignal{remote_ref_changed, lockfile_changed, external_call_detected}` / 시험: SE-01a·SE-08. 조건 미충족 시 DETECTED | DETECTED — 집행자 없음(앱 실행기는 정식 경로) / 관찰: `AuditSignal{remote_ref_changed, lockfile_changed, external_call_detected}`(설치·DB·외부 전송은 신호 범위가 좁아 **부분**) / 시험: SE-01a'·SE-08 | DETECTED(부분) — 집행자 없음 / 관찰: 동일 `AuditSignal` / 시험: SE-01a'·SE-08 | DETECTED(부분) — 네트워크 차단 시 외부 전송만 ENFORCED / 관찰: 동일 / 시험: SE-08 |
-| MCP | **기본(공유 `CODEX_HOME`, U9): POLICY_ONLY** — 집행자: 브로커 판정(allowlist 밖 DENY, `-c mcp_servers`가 기존 항목을 제거하는지는 **UNVERIFIED → S9**) / 관찰: `McpCallObserved{allowed}` / 시험: SE-08(MCP 경로, 공유 홈 픽스처). **격리 옵션(분리 프로필): 조건부 ENFORCED(allowlist)** — 집행자: 분리 프로필 + `-c mcp_servers` | 기본(공유) POLICY_ONLY / 격리 옵션 조건부 ENFORCED — 집행자·관찰·시험 엄격 모드와 동일 | 격리 옵션 ENFORCED — 집행자: `--strict-mcp-config`+`mcpServers`; **기본 상속 실행은 POLICY_ONLY**(§6) / 관찰: `McpCallObserved` / 시험: SE-08(MCP 경로) | 격리 옵션 ENFORCED / 기본 상속 POLICY_ONLY — 집행자·관찰·시험 Claude native와 동일 |
+| 파일 시스템(외부 경로) | ENFORCED — 집행자: `readOnly` 샌드박스(쓰기 자체 없음) / 관찰: `fileChange` 0·사후 diff `AuditSignal{unapproved_write}` / 시험: S4·SE-06b | ENFORCED(**S4 합격** 2026-11-02, `sandbox="elevated"`: 작업 공간·TEMP 밖 쓰기 `blocked`, on-request는 `approval_requested`) — 집행자: Windows sandbox `writableRoots` / 관찰: 사후 diff `AuditSignal{unapproved_write}` / 시험: S4·SE-06b. **예외(S4 불합격 경계)**: TEMP 상위(`%TEMP%`)는 기본 쓰기 허용 루트라 `bypassed` → DETECTED + `isolation_warning{fs_tmp_parent}`; 앱 기본값 `excludeTmpdirEnvVar`·`excludeSlashTmp`=true로 ENFORCED(S4 재실측 1행 `blocked`). `unelevated` 변형은 적용 미검증 | POLICY_ONLY(**S4 실측 확정**: allow-all → `fs_outside` `bypassed`, deny → 효과 0; `isolation_warning{fs_outside}`) — 집행자 없음(`canUseTool` deny는 자동 허용 도구 미경유). `permissionMode:'plan'`은 경계가 아니라 정책(S2): 앱이 `ExitPlanMode`를 `canUseTool`에서 거부해야 유지되고, 홈 `~/.claude/plans/` 계획 파일 `Write`는 `canUseTool` 미경유(허용 예외로 기록) / 관찰: 사후 diff `AuditSignal{unapproved_write}` / 시험: S2·S4·SE-06b | ENFORCED(Bash — sandbox FS) + POLICY_ONLY(파일 도구는 `canUseTool` 판정만) / 관찰: 사후 diff / 시험: S4(WSL2 **미실측** — claude 미설치, V1 게이트로 이월)·SE-06b |
+| 실행 명령 | DETECTED(**S1c 실측**, V30): `readOnly`에서 읽기 전용 명령은 **승인 없이 실행**되고, 파일 쓰기·외부 네트워크 명령만 샌드박스 차단 → 승인 요청. 따라서 "명령 실행이 승인 요청으로만 가능"은 성립하지 않으며 명령 실행 자체의 집행자는 없다(효과는 파일 시스템·네트워크 행이 ENFORCED) / 관찰: `ProcessObserved`·`GitCommandRun` / 시험: S1c·SE-08 | DETECTED — 집행자: 브로커(승인 요청이 발생한 명령만 ENFORCED) / 관찰: `ProcessObserved`·`GitCommandRun` / 시험: SE-02·SE-08 | POLICY_ONLY — 집행자: `canUseTool`(Bash 요청이 올 때만) / 관찰: `ProcessObserved` / 시험: SE-08 | ENFORCED(sandbox 범위: FS·네트워크; 명령 실행 자체는 허용) / 관찰: `ProcessObserved` / 시험: S4(WSL2)·SE-08 |
+| 네트워크 | ENFORCED(**S4 합격**: 외부 호스트 `blocked`, `curl` → 000) — 집행자: Windows sandbox 네트워크 차단 / 관찰: 로컬 수신 서버 로그 0건·`AuditSignal{external_call_detected}` / 시험: S4·SE-07. **예외**: loopback(127.0.0.1)은 `bypassed` → DETECTED + `isolation_warning{network_loopback}`(앱 데몬 WS·로컬 MCP·개발 서버가 에이전트 셸에서 접근 가능 → 데몬 인증 토큰 필수, S5) | ENFORCED(S4 합격, 외부 호스트) / loopback DETECTED — 동일 집행자·관찰·시험·예외 | POLICY_ONLY(**S4 실측 확정**: loopback allow-all → `bypassed`; `isolation_warning{network_loopback}`) — 집행자 없음 / 관찰: 수신 서버 로그·`AuditSignal{external_call_detected}` / 시험: S4·SE-07(DETECTED 조합) | ENFORCED(Bash — sandbox 네트워크 차단) / 관찰: 동일 / 시험: S4(WSL2 미실측)·SE-07 |
+| 원격 Git·DB·설치·배포·외부 서비스 | **DETECTED(S1c·S4 실측 후 유지)** — S1c는 "명령 실행이 승인 요청 없이는 불가"를 **부정**했고(읽기 명령 무승인 실행), 관찰은 `.git/index.lock` 쓰기 차단 1경로 + 외부 네트워크 차단 1경로뿐. ENFORCED 조건부로 올리는 조건(재정의): 파일 쓰기·외부 네트워크 ENFORCED(S4 ✓) + 앱 실행기 정식 경로 + 사용자 설정 MCP·Hook 제외(분리 `CODEX_HOME`, S9) + 우회 경로(MCP·Hook·설치 스크립트·loopback) 시험(**미실측**) — 전부 충족 전까지 DETECTED / 관찰: `AuditSignal{remote_ref_changed, lockfile_changed, external_call_detected}` / 시험: SE-01a·SE-08 | DETECTED — 집행자 없음(앱 실행기는 정식 경로) / 관찰: `AuditSignal{remote_ref_changed, lockfile_changed, external_call_detected}`(설치·DB·외부 전송은 신호 범위가 좁아 **부분**) / 시험: SE-01a'·SE-08 | DETECTED(부분) — 집행자 없음 / 관찰: 동일 `AuditSignal` / 시험: SE-01a'·SE-08 | DETECTED(부분) — 네트워크 차단 시 외부 전송만 ENFORCED / 관찰: 동일 / 시험: SE-08 |
+| MCP | **기본(공유 `CODEX_HOME`, U9): POLICY_ONLY** — 집행자: 브로커 판정(allowlist 밖 DENY). **S9 실측(V31)**: `-c mcp_servers.<name>=…`는 **추가만** 하고 `config.toml` `[mcp_servers.*]` 항목을 제거하지 않으므로 공유 홈에서는 allowlist 집행자가 없다(POLICY_ONLY 확정) / 관찰: `McpCallObserved{allowed}` / 시험: S9·SE-08(MCP 경로, 공유 홈 픽스처). **격리 옵션(분리 프로필): 조건부 ENFORCED(allowlist)** — 집행자: **분리 `CODEX_HOME`**(S9: 플러그인 0·MCP 0·스킬은 system 5만) + `-c mcp_servers`(앱 서버 추가); 조건 = 분리 홈의 로그인 재구성(미실측, P02 T2) | 기본(공유) POLICY_ONLY / 격리 옵션 조건부 ENFORCED — 집행자·관찰·시험 엄격 모드와 동일 | 격리 옵션 ENFORCED — 집행자: `--strict-mcp-config`+`mcpServers`(S2 V13: strict에서 사용자 MCP 0 관찰) 또는 `settingSources:[]`(S9: 플러그인 MCP 8→0, 스킬 89→19); **기본 상속 실행은 POLICY_ONLY**(§6) / 관찰: `McpCallObserved` / 시험: S2·S9·SE-08(MCP 경로) | 격리 옵션 ENFORCED / 기본 상속 POLICY_ONLY — 집행자·관찰·시험 Claude native와 동일 |
 | 브라우저·컴퓨터 사용 — **앱 MCP 서버 정식 호출 경로** | ENFORCED — 집행자: 앱 MCP 서버가 승인 없이 동작하지 않음(서버 측, 모드 무관) / 관찰: `ToolServerAction{action_id,target,decision}` / 시험: SE-10 | ENFORCED — 집행자·관찰·시험 동일(서버 측 집행은 공급자 무관) | ENFORCED — 동일 | ENFORCED — 동일 |
-| 브라우저·컴퓨터 사용 — **그 외 OS 입력 경로**(셸 스크립트·번들 플러그인) | **S1c 실측 전 UNVERIFIED**(readOnly 명령 불가 확인 시 ENFORCED) / 관찰: `ProcessObserved`·`AuditSignal{input_api_detected}` / 시험: SE-10 | DETECTED — 집행자 없음 / 관찰: 번들 플러그인 호출 `AgentEvent{kind:mcpToolCall}`·`ProcessObserved`·`AuditSignal{input_api_detected}` / 시험: SE-10 | POLICY_ONLY(셸 스크립트) + DETECTED(입력 API 감사) / 관찰: `AuditSignal{input_api_detected}` / 시험: SE-10 | ENFORCED(sandbox Bash) / 번들 플러그인 DETECTED / 관찰: 동일 / 시험: SE-10 |
+| 브라우저·컴퓨터 사용 — **그 외 OS 입력 경로**(셸 스크립트·번들 플러그인) | DETECTED(**S1c 실측**: readOnly에서 읽기 명령이 승인 없이 실행되므로 "명령 불가" 전제가 성립하지 않음 — 파일·네트워크 효과가 없는 입력 API 스크립트는 샌드박스가 막지 않음. S9: Codex 번들 computer-use는 Desktop 앱 실행 중에만 `cua_repl` 노출, 앱 미실행 재실측 필요) / 관찰: `ProcessObserved`·`AuditSignal{input_api_detected}` / 시험: S1c·SE-10 | DETECTED — 집행자 없음 / 관찰: 번들 플러그인 호출 `AgentEvent{kind:mcpToolCall}`·`ProcessObserved`·`AuditSignal{input_api_detected}` / 시험: SE-10 | POLICY_ONLY(셸 스크립트) + DETECTED(입력 API 감사) / 관찰: `AuditSignal{input_api_detected}` / 시험: SE-10 | ENFORCED(sandbox Bash) / 번들 플러그인 DETECTED / 관찰: 동일 / 시험: SE-10 |
 
 **자동 모드(옵트인, U8) 재계산 규칙(시험 가능)**: 셀의 집행자가 (1) 브로커·승인 콜백(`canUseTool`·`requestApproval`)이면 → 관찰 신호가 있는 셀은 `DETECTED`, 없는 셀은 `POLICY_ONLY` (2) 샌드박스·앱 MCP 서버면 → 그대로 유지. 도출 결과:
 
 | 영역 | Codex 엄격 | Codex 일반 | Claude native Windows | Claude sandbox |
 |---|---|---|---|---|
-| 파일 시스템(외부) | ENFORCED | ENFORCED(S4 합격)/DETECTED | DETECTED(사후 diff) | ENFORCED(Bash)+DETECTED(파일 도구) |
-| 실행 명령 | UNVERIFIED→S1c | DETECTED | DETECTED(`ProcessObserved`) | ENFORCED(sandbox 범위) |
-| 네트워크 | ENFORCED(S4) | ENFORCED(S4)/DETECTED | DETECTED(수신 로그) | ENFORCED |
+| 파일 시스템(외부) | ENFORCED | ENFORCED(외부 경로, S4 합격) / DETECTED(TEMP 상위 — 옵션으로 ENFORCED) | DETECTED(사후 diff; S4 확정) | ENFORCED(Bash)+DETECTED(파일 도구) — WSL2 미실측 |
+| 실행 명령 | DETECTED(S1c: 읽기 명령 무승인 실행) | DETECTED | DETECTED(`ProcessObserved`) | ENFORCED(sandbox 범위) |
+| 네트워크 | ENFORCED(외부 호스트, S4) / DETECTED(loopback) | 동일 | DETECTED(수신 로그; S4 확정) | ENFORCED — WSL2 미실측 |
 | 고위험 효과 | DETECTED(조건부 ENFORCED는 자동 모드에서 소멸 — 앱 적용기 승인 콜백이 집행자였음) | DETECTED(부분) | DETECTED(부분) | DETECTED(부분) |
 | MCP | 기본(공유 홈) POLICY_ONLY / 격리 옵션 조건부 ENFORCED | 동일 | 격리 옵션 ENFORCED / 기본 POLICY_ONLY | 동일 |
 | 앱 MCP 서버 정식 경로 | ENFORCED | ENFORCED | ENFORCED | ENFORCED |
-| 그 외 OS 입력 경로 | UNVERIFIED | DETECTED | DETECTED(입력 API) / 셸 POLICY_ONLY | ENFORCED(Bash)/DETECTED |
+| 그 외 OS 입력 경로 | DETECTED(S1c) | DETECTED | DETECTED(입력 API) / 셸 POLICY_ONLY | ENFORCED(Bash)/DETECTED |
 
 TEST-SE-09는 자동 모드 UI 라벨이 **이 도출표**와 일치함을 단언한다. 따라서 **Claude native Windows 자동 모드는 앱 MCP 서버 경로를 제외한 모든 영역이 DETECTED 또는 POLICY_ONLY**다. 자동 모드는 모든 공급자·OS·격리 조합에서 옵트인 가능하며(U8), 이 도출표의 DETECTED/POLICY_ONLY 값이 그대로 UI에 표시되고 격리 미확인 조합은 경고 배지 + 활성 시 1회 확인을 받는다.
 
@@ -113,7 +115,7 @@ TEST-SE-09는 자동 모드 UI 라벨이 **이 도출표**와 일치함을 단�
 
 Windows MVP-Core 기본: Codex `workspaceWrite` + 지정 worktree + 네트워크 기본 차단; Claude native는 신뢰 프로젝트·참석·검토 모드 한정.
 
-**격리 게이트**: P00 S4는 경로(worktree 외부 쓰기)·네트워크(미등록 호스트)별 **합격 기준**을 가진다 — 차단 또는 승인 요청으로 나타나면 합격. 불합격한 공급자·모드 조합은 P01 진입 시 `capabilities.isolation_warning`으로 등록되어 **경고 배지 + 자동 모드 활성 시 1회 확인 대화**를 거치고(쓰기·무인 실행 비활성화가 아님) 보장 수준 표를 `DETECTED`/`POLICY_ONLY`로 내린다. "신뢰하지 않는 저장소는 읽기 전용"의 강제 수단: Codex `readOnly` 샌드박스, Claude는 `permissionMode:plan`+`PreToolUse` 거부(정책만) — UI에 보장 수준 표시.
+**격리 게이트**: P00 S4는 경로(worktree 외부 쓰기)·네트워크(미등록 호스트)별 **합격 기준**을 가진다 — 차단 또는 승인 요청으로 나타나면 합격. 불합격한 공급자·모드 조합은 P01 진입 시 `capabilities.isolation_warning`으로 등록되어 **경고 배지 + 자동 모드 활성 시 1회 확인 대화**를 거치고(쓰기·무인 실행 비활성화가 아님) 보장 수준 표를 `DETECTED`/`POLICY_ONLY`로 내린다. "신뢰하지 않는 저장소는 읽기 전용"의 강제 수단: Codex `readOnly` 샌드박스, Claude는 `permissionMode:plan`+`PreToolUse` 거부(정책만) — UI에 보장 수준 표시. **P00 S4 결과(2026-11-02)**: 합격 = Codex `elevated` 외부 경로·외부 호스트. 불합격 경계 6건이 `isolation_warning` 등록 입력(P01 T11)이다 — codex/windows/workspaceWrite/elevated `fs_tmp_parent`·`network_loopback`, codex/windows/workspaceWrite/unelevated 동일 2건(변형 적용 미검증), claude/windows/native/default `fs_outside`·`network_loopback`. 목록·`bypassedPolicies`는 `docs/spikes/S4.md` §2, 보장 수준 하향 4건은 같은 절. Claude WSL2 sandbox는 미실측(claude 미설치).
 
 ## 4. 프롬프트 인젝션 대응
 
