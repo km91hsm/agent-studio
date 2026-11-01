@@ -1,0 +1,17 @@
+{
+ "call": "P00_GATE_review",
+ "purpose": "P00_GATE 스파이크 교차 리뷰(읽기 전용, features.memories=false)",
+ "thread_id": "<thread-id>",
+ "reasoning_effort": "high",
+ "sandbox": "read-only",
+ "started_at": "2026-11-01T22:51:37Z",
+ "finished_at": "2026-11-01T22:54:10Z",
+ "exit_code": 0,
+ "usage": {
+  "input_tokens": 1584038,
+  "cached_input_tokens": 1490688,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 8746,
+  "reasoning_output_tokens": 2772
+ }
+}
