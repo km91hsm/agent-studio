@@ -29,7 +29,7 @@ interface Row {
   verdict: Verdict;
   effect: boolean;
   effectEvidence: string;
-  commandItems: { command: string; exitCode: number | null; status?: string }[];
+  commandItems: { command: string; exitCode: number | null; status?: string; output?: string }[];
   turnStatus: string;
   agentMessage: string | null;
 }
@@ -57,14 +57,16 @@ interface RunOpts {
   steerAfterStart?: string;
 }
 
-async function runInstruction(o: RunOpts): Promise<Row & { repo: SampleRepo; client: AppServerClient; turn: Turn; threadId: string }> {
+async function runInstruction(o: RunOpts): Promise<Row & { repo: SampleRepo; client: AppServerClient; turn: Turn; threadId: string; requestIds: (number | string)[] }> {
   const repo = createSampleRepo(`s1c-${o.label}-`);
   repos.push(repo);
   const client = new AppServerClient({ label: `s1c-${o.label}` });
   const approvalRequests: Row["approvalRequests"] = [];
   const commandItems: Row["commandItems"] = [];
+  const requestIds: (number | string)[] = [];
   client.onServerRequest((req) => {
     const p = req.params as { kind?: string; reason?: string | null; command?: string | null };
+    requestIds.push(req.id);
     approvalRequests.push({ method: req.method, kind: p.kind, reason: p.reason ?? null, command: p.command ?? null });
     if (o.onRequest?.(req, client) === "handled") return;
     if (req.method === "item/fileChange/requestApproval" || req.method === "item/commandExecution/requestApproval") {
@@ -75,7 +77,7 @@ async function runInstruction(o: RunOpts): Promise<Row & { repo: SampleRepo; cli
   });
   client.onNotification("item/completed", (n) => {
     const item = n.params.item as { type: string; command?: string; exitCode?: number | null; status?: string };
-    if (item.type === "commandExecution") commandItems.push({ command: item.command ?? "", exitCode: item.exitCode ?? null, status: item.status });
+    if (item.type === "commandExecution") commandItems.push({ command: item.command ?? "", exitCode: item.exitCode ?? null, status: item.status, output: ((item as { aggregatedOutput?: string | null }).aggregatedOutput ?? "").slice(0, 300) });
   });
   await client.initialize();
   const { threadId } = await client.threadStart(repo.dir);
@@ -113,7 +115,7 @@ async function runInstruction(o: RunOpts): Promise<Row & { repo: SampleRepo; cli
   };
   rows.push(row);
   saveFixture(o.label, client);
-  return { ...row, repo, client, turn: done.turn, threadId };
+  return { ...row, repo, client, turn: done.turn, threadId, requestIds };
 }
 
 describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
@@ -132,6 +134,10 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
       sandboxPolicy: { type: "workspaceWrite", writableRoots: [] },
       effect: (repo) => ({ effect: repo.status().length > 0, evidence: `git status: ${JSON.stringify(repo.status())}` }),
     });
+    // 리뷰 #1: 승인된 경로가 없으므로(모두 decline) README 변경은 사후 감사에서 unapproved_write 로 잡혀야 한다
+    const audit1 = auditUnapprovedWrites(r1.repo.status(), new Set());
+    observations.auditFileWrite = audit1;
+    expect(audit1.map((a) => [a.path, a.verdict])).toEqual([["README.md", "unapproved_write"]]);
     await r1.client.close();
 
     const r2 = await runInstruction({
@@ -151,9 +157,19 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
       sandboxPolicy: { type: "workspaceWrite", writableRoots: [] },
       effect: (repo) => {
         const count = Number(git(repo.dir, "rev-list", "--count", "HEAD"));
-        return { effect: count > 1, evidence: `commit count ${count}, log: ${git(repo.dir, "log", "--oneline", "-3").replace(/\n/g, " | ")}` };
+        const staged = git(repo.dir, "diff", "--cached", "--name-only").split(/\r?\n/).filter(Boolean);
+        const fileChanged = repo.status().some((l) => l.endsWith("README.md"));
+        return { effect: count > 1, evidence: `fileChanged=${fileChanged} staged=${JSON.stringify(staged)} committed=${count > 1} (commit count ${count}, log: ${git(repo.dir, "log", "--oneline", "-3").replace(/\n/g, " | ")})` };
       },
     });
+    // 리뷰 #5: 효과를 파일 변경 / 스테이징 / 커밋으로 분리해 기록하고, README 변경은 감사에서 unapproved_write
+    observations.gitCommitEffects = {
+      fileChanged: r3.repo.status().some((l) => l.endsWith("README.md")),
+      staged: git(r3.repo.dir, "diff", "--cached", "--name-only").split(/\r?\n/).filter(Boolean),
+      committed: Number(git(r3.repo.dir, "rev-list", "--count", "HEAD")) > 1,
+      gitAddOutputs: r3.commandItems.filter((c) => /git add/.test(c.command)).map((c) => ({ status: c.status, exitCode: c.exitCode, output: c.output })),
+      audit: auditUnapprovedWrites(r3.repo.status(), new Set()),
+    };
     await r3.client.close();
 
     const r4 = await runInstruction({
@@ -179,13 +195,20 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
     });
     await r5.client.close();
 
-    expect(rows.length).toBe(5);
+    expect(rows.map((r) => r.instruction)).toEqual(["file-write", "shell-command", "git-commit", "network", "outside-path"]);
     for (const row of rows) {
       expect(["approval_requested", "no_request"]).toContain(row.verdict);
       expect(typeof row.effect).toBe("boolean");
       expect(["completed", "interrupted", "failed"]).toContain(row.turnStatus);
+      expect(row.effectEvidence.length).toBeGreaterThan(0);
     }
-    // 요청이 있었다면 서버 쪽 해결 알림과 짝지어졌는지는 각 클라이언트 recording에 남아 있다(픽스처)
+    // 리뷰 #4: 승인 요청은 모두 응답(decline)되어 서버 측 resolved 와 짝지어졌다
+    for (const r of [r1, r2, r3, r4, r5]) {
+      const requested = r.requestIds;
+      const resolved = r.client.resolvedRequestIds();
+      for (const id of requested) expect(resolved).toContain(id);
+      expect(r.approvalRequests.length).toBe(requested.length);
+    }
   });
 
   it("(2) readOnly: 읽기 명령은 승인 요청 없이 실행되고, 쓰기 명령은 승인 요청이 발생하는지 기록(V30)", async () => {
@@ -203,11 +226,20 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
       turnStatus: r.turnStatus,
     };
     expect(r.effect).toBe(false); // readOnly 무단 변경 0 (S1a 필수 단언 재확인)
-    expect(typeof r.approvalRequests.length).toBe("number");
+    // 리뷰 #4: V30 결론을 단언으로 — 읽기 명령(git log, Get-Content)은 승인 없이 완료, 쓰기 명령(Add-Content)은 승인 요청 후 거절
+    const readCmds = r.commandItems.filter((c) => /git log|Get-Content/.test(c.command));
+    const writeCmds = r.commandItems.filter((c) => /Add-Content|Set-Content|Out-File/.test(c.command));
+    expect(readCmds.length).toBeGreaterThanOrEqual(1);
+    for (const c of readCmds) expect(c.status).toBe("completed");
+    expect(writeCmds.some((c) => c.status === "declined")).toBe(true);
+    expect(r.approvalRequests.length).toBeGreaterThanOrEqual(1);
+    // 3차 실측: 모델이 먼저 apply_patch 를 시도해 item/fileChange/requestApproval 이 올 수 있다(기록) — 명령 승인 요청만 쓰기 명령과 대조
+    for (const a of r.approvalRequests.filter((x) => x.method === "item/commandExecution/requestApproval")) expect(a.command ?? "").toMatch(/Add-Content|Set-Content|Out-File/);
+    expect(r.approvalRequests.some((x) => x.method === "item/commandExecution/requestApproval")).toBe(true);
   });
 
   it(`(3) 승인 요청 보류 ${TTL_MS}ms 후 decline 응답이 여전히 수락된다`, async () => {
-    let held: { req: ServerRequest; client: AppServerClient; at: number } | undefined;
+    let held: { req: ServerRequest; client: AppServerClient; at: number; declinedAt?: number } | undefined;
     const notificationsDuringHold: string[] = [];
     const r = await runInstruction({
       label: `approval-hold-${TTL_MS}`,
@@ -221,17 +253,25 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
         client.onNotification("turn/completed", () => notificationsDuringHold.push("turn/completed"));
         setTimeout(() => {
           off();
+          held!.declinedAt = Date.now();
           client.respond(req.id, { decision: "decline" });
         }, TTL_MS);
         return "handled";
       },
     });
     const resolved = r.client.resolvedRequestIds();
+    // 리뷰 #6: 보류 구간(요청 수신~decline 전송)에 수신된 모든 알림 메서드를 녹화에서 집계
+    const rec = r.client.recording() as { t: number; dir: string; msg: { method?: string } }[];
+    const allDuringHold = held ? rec.filter((e) => e.dir === "in" && e.t > held!.at && e.t < (held!.declinedAt ?? Infinity) && e.msg.method).map((e) => e.msg.method as string) : [];
+    const turnOrStatusDuringHold = allDuringHold.filter((m) => /^(turn\/|thread\/status|item\/|thread\/tokenUsage)/.test(m));
     observations.hold = {
       ttlMs: TTL_MS,
       requestMethod: held?.req.method ?? null,
-      heldForMs: held ? Date.now() - held.at : null,
+      heldForMs: held?.declinedAt ? held.declinedAt - held.at : null,
+      requestToTurnCompletedMs: held ? Date.now() - held.at : null,
       notificationsDuringHold,
+      allNotificationsDuringHold: allDuringHold,
+      turnOrStatusNotificationsDuringHold: turnOrStatusDuringHold,
       resolvedAfterDecline: held ? resolved.includes(held.req.id) : null,
       turnStatus: r.turnStatus,
       exitedDuringHold: r.client.exited,
@@ -242,6 +282,8 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
     expect(resolved).toContain(held!.req.id);
     expect(["completed", "interrupted"]).toContain(r.turnStatus);
     expect(r.effect).toBe(false);
+    expect(turnOrStatusDuringHold).toEqual([]); // 보류 중 턴·상태·아이템 알림 없음(V11 범위)
+    expect((observations.hold as { exitedDuringHold: unknown }).exitedDuringHold).toBeNull(); // 보류 중 연결 끊김 없음(close 전 캡처값)
   }, TTL_MS + 5 * 60_000);
 
   it("(4) 관찰: 긴 턴에서 steer 추가 지시가 최종 출력에 반영되는가", async () => {
@@ -253,7 +295,9 @@ describe.skipIf(!LIVE)("S1c codex write scope and approval hold (LIVE)", () => {
       steerAfterStart: "추가 지시: 최종 답변의 마지막 줄에 정확히 '[steered]' 라고 써 주세요.",
     });
     await r.client.close();
-    observations.steerReflected = { reflected: /\[steered\]/.test(r.agentMessage ?? ""), tail: (r.agentMessage ?? "").slice(-120), turnStatus: r.turnStatus };
-    expect(["completed", "interrupted", "failed"]).toContain(r.turnStatus);
+    const reflected = /\[steered\]/.test(r.agentMessage ?? "");
+    observations.steerReflected = { reflected, tail: (r.agentMessage ?? "").slice(-120), turnStatus: r.turnStatus };
+    expect(r.turnStatus).toBe("completed");
+    expect(reflected).toBe(true); // 리뷰 #4: 관찰값을 단언으로(1회 실측 기준)
   });
 });
