@@ -1,0 +1,12 @@
+{
+  "skill_id": "obra/superpowers/writing-plans",
+  "skill_commit": "2ce8aa1",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:writing-plans", "required": false },
+    { "order": 2, "artifact_glob": "docs/plans/**/*.md", "required": true, "note": "계획 파일 docs/plans/YYYY-MM-DD-<name>.md 작성" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}

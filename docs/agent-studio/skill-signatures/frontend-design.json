@@ -1,0 +1,12 @@
+{
+  "skill_id": "anthropics/skills/frontend-design",
+  "skill_commit": "ca45fc4",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:frontend-design", "required": false },
+    { "order": 2, "artifact_glob": "**/*.{html,css,tsx,jsx,vue,svelte}", "required": true, "note": "UI 산출물" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}

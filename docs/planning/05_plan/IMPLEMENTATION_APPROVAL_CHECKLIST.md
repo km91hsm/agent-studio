@@ -11,7 +11,7 @@
 | # | 항목 | 시점 | 결정 입력 |
 |---|---|---|---|
 | C3 | P00 S6 설치물 빌드에 Windows C++ Build Tools(electron-builder·node-pty 네이티브 빌드) 설치가 필요하면 별도 승인(U7) | S6 착수 시 | S6 빌드 시도 결과(UNVERIFIED: 필요 여부) |
-| C4 | Codex 주도 스킬 8종을 스킬 폴더 전체(`agents/openai.yaml` 생략)로 `~/.codex/skills`에 복사(U5 재결정, USAGE_PLAN §3). `.system`·`config.toml`·`AGENTS.md`는 미수정 | 구현 착수 시, P00 S7 전 | 복사 대상 목록(CONFLICT §2 8행의 주도 스킬 9개 중 Codex 미라우팅 `brainstorming`(ROUTING §2)을 제외한 8개: writing-plans, executing-plans, test-driven-development, systematic-debugging, code-review, writing-skills, frontend-design, ui-ux-pro-max — 명단 확정·경로·해시는 이 승인의 입력, V35) + 원본 경로(`D:\LLM\claude-skills\skills`)·커밋·해시표, CONFLICT §2 각 행과의 대응 |
+| C4 ✅ **완료(2026-11-02, P00 S7)** | Codex 주도 스킬 8종을 스킬 폴더 전체(`agents/openai.yaml` 생략)로 `~/.codex/skills`에 복사(U5 재결정, USAGE_PLAN §3). `.system`·`config.toml`·`AGENTS.md`는 미수정 — **완료 증거**: `docs/spikes/S7.md` §2 해시표, `spikes/fixtures/s7-c4-install.json`(전후 불변 해시), `s7-skills.test.ts` (a)·(b) 통과 | 완료: 구현 착수 시, P00 S7 직전(`npx tsx spikes/s7-skills/install-codex-skills.ts`) | 복사 대상 목록(CONFLICT §2 8행의 주도 스킬 9개 중 Codex 미라우팅 `brainstorming`(ROUTING §2)을 제외한 8개: writing-plans, executing-plans, test-driven-development, systematic-debugging, code-review, writing-skills, frontend-design, ui-ux-pro-max — 명단 확정·경로·해시는 이 승인의 입력, V35) + 원본 경로(`D:\LLM\claude-skills\skills`)·커밋·해시표, CONFLICT §2 각 행과의 대응 |
 | C9 | V1 Agent Studio MCP 도구 서버의 OS 입력 제어(화면 캡처·마우스·키보드)와 이미지 생성 API(공급자 키 키링 저장) 구현 범위 | S9 결과 보고 후, P10b T9 전 | `docs/spikes/S9.md` CAP 판정표 |
 | 2차 승인 | P01 이후 구현 착수 | P00 종료 게이트 후(S9 미완으로 AC-P00-9 미통과이면 사용자가 그 예외를 명시 수용한 경우에만) | S0 첫 push 점검·CI 결과 보고서 1건 + 스파이크 보고서 11건(pass/fail 판정표; S9 미완 시 상태 보고서 포함) + 범위 축소 제안 + SECURITY_MODEL §2.1 갱신분 + 설계 수정분의 Codex 독립 재검증 결과 |
 

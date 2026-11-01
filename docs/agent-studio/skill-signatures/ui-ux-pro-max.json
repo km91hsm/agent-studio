@@ -1,0 +1,13 @@
+{
+  "skill_id": "nextlevelbuilder/ui-ux-pro-max-skill/ui-ux-pro-max",
+  "skill_commit": "3a13158",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:ui-ux-pro-max", "required": false },
+    { "order": 2, "event_pattern": "/^command:.*(python|uv run).*search[.]py/", "required": true, "note": "스킬 동봉 검색 스크립트(style·palette·font 조회)" },
+    { "order": 3, "artifact_glob": "**/*.{html,css,tsx,jsx,md}", "required": false, "note": "디자인 체계 산출물" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}

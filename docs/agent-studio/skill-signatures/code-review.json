@@ -1,0 +1,22 @@
+{
+  "skill_id": "mattpocock/skills/code-review",
+  "skill_commit": "4ae2317",
+  "version": 1,
+  "steps": [
+    {
+      "order": 1,
+      "event_pattern": "skill_invoked:code-review",
+      "required": false
+    },
+    {
+      "order": 2,
+      "event_pattern": "/git (diff|log|merge-base|status|rev-parse|show)/",
+      "required": true,
+      "note": "기준점 이후 변경 수집(Standards·Spec 두 축 입력). S7 실험 3: Codex는 pwsh -Command 래퍼 안에서 git rev-parse HEAD~1 만 썼으므로 앵커 없이 rev-parse|show 포함"
+    }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0,
+  "note": "리뷰 스킬은 저장소를 변경하지 않아야 한다(음성 제약은 시그니처 밖에서 git status로 단언)"
+}

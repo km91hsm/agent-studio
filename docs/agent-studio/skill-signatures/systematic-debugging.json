@@ -1,0 +1,14 @@
+{
+  "skill_id": "obra/superpowers/systematic-debugging",
+  "skill_commit": "2ce8aa1",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:systematic-debugging", "required": false },
+    { "order": 2, "event_pattern": "test_run:fail", "required": true, "note": "Phase 1 재현: 편집 전에 실패를 먼저 관찰" },
+    { "order": 3, "artifact_glob": "**/*.{js,mjs,ts}", "required": true, "note": "Phase 4 수정(재현 이후)" },
+    { "order": 4, "event_pattern": "test_run:pass", "required": true, "note": "수정 검증" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}

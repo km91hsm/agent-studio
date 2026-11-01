@@ -1,0 +1,14 @@
+{
+  "skill_id": "obra/superpowers/executing-plans",
+  "skill_commit": "2ce8aa1",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:executing-plans", "required": false },
+    { "order": 2, "event_pattern": "/^command:.*(sdd-workspace|task-start|task-done)/", "required": true, "note": "스킬 전용 스크립트 호출(브리프·ledger)" },
+    { "order": 3, "artifact_glob": ".superpowers/sdd/**/progress.md", "required": false, "note": "ledger 갱신(Write/Edit로 관찰될 때만)" },
+    { "order": 4, "event_pattern": "test_run:pass", "required": false, "note": "task-done 검증 실행" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}

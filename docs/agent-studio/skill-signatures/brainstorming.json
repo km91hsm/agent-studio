@@ -1,0 +1,12 @@
+{
+  "skill_id": "obra/superpowers/brainstorming",
+  "skill_commit": "2ce8aa1",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:brainstorming", "required": false },
+    { "order": 2, "artifact_glob": "docs/plans/**/*-design.md", "required": true, "note": "설계 문서 docs/plans/YYYY-MM-DD-<topic>-design.md" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}

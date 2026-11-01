@@ -1,0 +1,13 @@
+{
+  "skill_id": "obra/superpowers/writing-skills",
+  "skill_commit": "2ce8aa1",
+  "version": 1,
+  "steps": [
+    { "order": 1, "event_pattern": "skill_invoked:writing-skills", "required": false },
+    { "order": 2, "artifact_glob": "**/SKILL.md", "required": true, "note": "SKILL.md 작성(frontmatter name/description)" },
+    { "order": 3, "artifact_glob": "**/*.md", "required": false, "note": "참조 문서" }
+  ],
+  "author": "claude",
+  "reviewed_by": null,
+  "created_seq": 0
+}
