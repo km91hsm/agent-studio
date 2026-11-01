@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AGENTS, CAPS, MCP_PROBE_SERVER, configInheritance, decideApproval, mcpReached, probeAll, validateResults, type CapabilityProbeResult } from "./probe.js";
+import { mask } from "../_shared/mask.js";
 
 const FIXTURE = fileURLToPath(new URL("../fixtures/s9-capabilities-results.json", import.meta.url));
 const RECORDINGS = fileURLToPath(new URL("../fixtures/", import.meta.url));
@@ -58,6 +59,9 @@ describe("S9 capability probe — 결과 계약 (CI)", () => {
     expect(j.meta.codexVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(j.meta.startedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(raw).not.toMatch(/[A-Za-z]:[\\/]+Users[\\/]+(?!<user>)[A-Za-z0-9_.-]+/);
+    // 최종 리뷰 #2: 결과 픽스처도 mask() 를 거쳐야 하고, MCP toolsError 의 Cloudflare 챌린지 본문·토큰은 남지 않아야 한다
+    expect(raw).not.toMatch(/__cf_chl_tk=(?!<cf-token>)|cRay: '(?!<cf-token>)/);
+    for (const d of Object.values(j.raw.codex)) for (const r of d.mcp.rows) if (typeof r.toolsError === "string") expect(r.toolsError.length, `${r.name} toolsError`).toBeLessThan(400);
     // Codex 리뷰 #3: CAP-08 codex 의 reached 는 s9_probe 행(핸드셰이크·도구 수)에서 도출된 값이어야 한다(이름 등장만으로 started 금지)
     const probeRow = j.raw.codex.sharedMcpOverride.mcp.rows.find((r) => r.name === "s9_probe");
     const cap08 = j.results.find((r) => r.cap === "CAP-08" && r.agent === "codex")!;
@@ -136,7 +140,7 @@ describe.skipIf(!process.env.AGENT_STUDIO_LIVE)("S9 capability probe — LIVE (C
   it("probeAll 이 18행을 산출해 계약을 만족하고, 픽스처·녹화·사용량을 기록한다", async () => {
     const out = await probeAll({ recordingsDir: RECORDINGS });
     mkdirSync(dirname(FIXTURE), { recursive: true });
-    writeFileSync(FIXTURE, JSON.stringify(out, null, 2) + "\n");
+    writeFileSync(FIXTURE, mask(JSON.stringify(out, null, 2)) + "\n"); // 최종 리뷰 #2: 결과 픽스처도 mask() 경유
     expect(validateResults(out.results)).toEqual([]);
     expect(out.results).toHaveLength(18);
     for (const agent of AGENTS) expect(out.results.filter((r) => r.agent === agent)).toHaveLength(9);

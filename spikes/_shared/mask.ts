@@ -7,6 +7,9 @@ const TOKENS = /\b(ghp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9]{
 const SESSION_ID_FIELD = /"session(?:_id|Id)"\s*:\s*"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"/g;
 /** `C:\Users\<이름>` 형태의 모든 사용자 세그먼트(스트리밍 델타가 사용자명을 토큰 경계에서 잘라 남긴 조각 포함) — 이미 `<user>`인 것은 제외 */
 const USERS_SEGMENT = /(\bUsers(?:\\{1,4}|\/)+)(?!<user>)[^\\/"'\s<]+/g;
+/** Cloudflare 챌린지(원격 MCP 403 HTML)의 요청 상관 토큰: 질의 `__cf_chl_tk=…` 와 챌린지 옵션 객체의 cH/cRay/md 등 값(JS 객체 리터럴 형태만 — JSON 키 `"md":` 는 제외) */
+const CF_QUERY = /(__cf_chl_tk|__cf_chl_rt_tk|__cf_chl_f_tk|cf_chl_rc_i)=(?!<cf-token>)[^&"'\s<\\]+/g;
+const CF_OPTS = /\b(cH|cRay|md|mdrd|cUPMDTk|cFPWv|cNounce|cTplV|cZone|cvId|cITimeS)(\s*:\s*)(['"])(?!<cf-token>)(?:(?!\3).)*\3/g;
 
 /** 녹화 픽스처 커밋 전 마스킹: 홈 경로(1·2·4중 백슬래시, 슬래시)·사용자명·호스트명·thread id·Claude session id·토큰 패턴. */
 export function mask(text: string): string {
@@ -25,7 +28,14 @@ export function mask(text: string): string {
   const sessionIds = new Set<string>();
   for (const m of out.matchAll(SESSION_ID_FIELD)) sessionIds.add(m[1]);
   for (const id of sessionIds) out = out.split(id).join("<session-id>");
-  return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>").replace(INSTALLATION_ID, "$1<installation-id>$2");
+  return out.replace(THREAD_ID, "<thread-id>").replace(TOKENS, "<secret>").replace(INSTALLATION_ID, "$1<installation-id>$2").replace(CF_QUERY, "$1=<cf-token>").replace(CF_OPTS, "$1$2$3<cf-token>$3");
+}
+
+/** 긴 오류 본문(원격 MCP 403 HTML 챌린지 등)을 상한에서 잘라 길이만 남긴다 — 결과 픽스처의 `toolsError`·녹화의 startupStatus error 에 공통 적용 */
+export function truncateErrorBody(err: string, maxLen = 200): string {
+  if (err.length <= maxLen) return err;
+  const cut = err.slice(0, maxLen).replace(/<[^>]*$/, "");
+  return `${cut} <error-body-removed len=${err.length}>`;
 }
 
 /** 녹화 이벤트 정화: MCP 기동 상태 알림의 긴 error 본문(HTML 챌린지·토큰성 질의 문자열)을 잘라낸다. */
@@ -33,9 +43,7 @@ export function sanitizeEvents<T extends { msg: unknown }>(events: T[], maxError
   return events.map((e) => {
     const msg = e.msg as { method?: string; params?: { error?: unknown } } | undefined;
     if (msg?.method === "mcpServer/startupStatus/updated" && typeof msg.params?.error === "string" && msg.params.error.length > maxErrorLen) {
-      const err = msg.params.error;
-      const cut = err.slice(0, maxErrorLen).replace(/<[^>]*$/, "");
-      return { ...e, msg: { ...msg, params: { ...msg.params, error: `${cut} <error-body-removed len=${err.length}>` } } };
+      return { ...e, msg: { ...msg, params: { ...msg.params, error: truncateErrorBody(msg.params.error, maxErrorLen) } } };
     }
     return e;
   });

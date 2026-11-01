@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { AppServerClient, type ApprovalPolicy, type SandboxPolicy, type ServerRequest, type UserInput } from "../s1-codex-app-server/client.js";
 import { ClaudeRun, type ClaudeRunOpts } from "../s2-claude-sdk/run.js";
 import { createSampleRepo } from "../_shared/sampleRepo.js";
-import { mask } from "../_shared/mask.js";
+import { mask, truncateErrorBody } from "../_shared/mask.js";
 
 export const CAPS = ["CAP-01", "CAP-02", "CAP-03", "CAP-04", "CAP-05", "CAP-06", "CAP-07", "CAP-08", "CAP-09"] as const;
 export const AGENTS = ["claude", "codex"] as const;
@@ -215,7 +215,7 @@ export async function probeAll(opts: { recordingsDir?: string } = {}): Promise<P
       usage.codex.calls++;
       const skillRows = skills.ok ? ((((skills.value as Json).data as Json[]) ?? []).flatMap((d) => (d.skills as Json[]) ?? [])) : [];
       const pluginRows: PluginRow[] = plugins.ok ? (((plugins.value as Json).marketplaces as Json[]) ?? []).flatMap((m) => ((m.plugins as Json[]) ?? []).map((p) => ({ marketplace: String(m.name), id: String(p.id), installed: !!p.installed, enabled: !!p.enabled, version: p.version ?? null, disabledReason: p.disabledReason ?? null }))) : [];
-      const mcpRows: McpRow[] = mcp.ok ? (((mcp.value as Json).data as Json[]) ?? []).map((m) => ({ name: String(m.name), pluginId: m.pluginId ?? null, authStatus: m.authStatus ?? null, toolsError: m.toolsError ?? null, runtimeStatus: pick(m.runtimeStatus, ["state", "reason"]), tools: Object.keys((m.tools as Json) ?? {}).length })) : [];
+      const mcpRows: McpRow[] = mcp.ok ? (((mcp.value as Json).data as Json[]) ?? []).map((m) => ({ name: String(m.name), pluginId: m.pluginId ?? null, authStatus: m.authStatus ?? null, toolsError: typeof m.toolsError === "string" ? truncateErrorBody(m.toolsError) : (m.toolsError ?? null), runtimeStatus: pick(m.runtimeStatus, ["state", "reason"]), tools: Object.keys((m.tools as Json) ?? {}).length })) : [];
       const cfg = config.ok ? (config.value as Json) : {};
       const cfgObj = (cfg.config as Json) ?? {};
       const summary: DiscoverySummary = {

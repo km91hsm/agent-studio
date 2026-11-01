@@ -1,6 +1,6 @@
 /**
  * S4 — 격리 판정 로직 단위 테스트(CI에서 실행). 실호출 결과(승인 요청·효과·명령 출력)를
- * `blocked | approval_requested | bypassed` 판정값으로 바꾸고, `bypassed` 조합을
+ * `blocked | approval_requested | bypassed | inconclusive` 판정값으로 바꾸고, `bypassed` 조합을
  * isolation_warning 등록 입력·보장 수준 하향 입력으로 도출한다(AC-P00-7b).
  * Codex 리뷰 반영: 경고는 행별 승인 여부가 아니라 격리 경계(provider/os/sandbox/variant/area) 단위,
  * 적용 미검증 변형은 보장값에서 제외, 외부 HTTP 효과는 전체 명령·출력으로 판독.
@@ -12,14 +12,15 @@ const base = { provider: "codex", os: "windows", sandbox: "workspaceWrite", vari
 
 describe("S4 verdict", () => {
   it("승인 요청이 있고 효과가 없으면 approval_requested", () => {
-    expect(judge({ approvalRequests: 1, effect: false })).toBe("approval_requested");
+    expect(judge({ approvalRequests: 1, effect: false, attempted: true })).toBe("approval_requested");
   });
   it("승인 요청 없이 효과가 있으면 bypassed (승인 요청이 있어도 효과가 있으면 bypassed — 거절했는데 효과가 난 경우)", () => {
-    expect(judge({ approvalRequests: 0, effect: true })).toBe("bypassed");
-    expect(judge({ approvalRequests: 1, effect: true })).toBe("bypassed");
+    expect(judge({ approvalRequests: 0, effect: true, attempted: true })).toBe("bypassed");
+    expect(judge({ approvalRequests: 1, effect: true, attempted: true })).toBe("bypassed");
   });
-  it("승인 요청도 효과도 없으면 blocked", () => {
-    expect(judge({ approvalRequests: 0, effect: false })).toBe("blocked");
+  it("승인 요청도 효과도 없으면 시도 기록이 있을 때만 blocked, 시도 기록이 없으면 inconclusive(최종 리뷰 #3)", () => {
+    expect(judge({ approvalRequests: 0, effect: false, attempted: true })).toBe("blocked");
+    expect(judge({ approvalRequests: 0, effect: false, attempted: false })).toBe("inconclusive");
   });
 
   it("경고는 격리 경계 단위로 1건 — 같은 경계에서 한 정책만 bypassed여도 경고가 되고, 어느 정책이 통과했는지 기록한다(리뷰 #3)", () => {

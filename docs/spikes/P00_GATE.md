@@ -6,7 +6,7 @@
 | 작성 | 2026-11-02 KST(P00 S0 착수 ~ S9 완료 같은 날), Windows 11 Pro 10.0.26300, Node v24.21.0, codex-cli 0.166.0, Claude Code 2.1.316 / Agent SDK 0.3.316 |
 | 구현/리뷰 | implementer=claude(이 세션, Fable 5.1), reviewer=codex(`codex exec -s read-only`, 스파이크당 1회 = 11회 + 이 게이트의 독립 재검증 1회 §8) |
 | 저장소 | https://github.com/km91hsm/agent-studio `main`(orphan, 마스킹 스냅숏 06211fc 기준) — 커밋마다 push, CI windows+ubuntu success |
-| 결론 | **P00 작업 완료 — 게이트 판정은 2차 승인·예외 결정 대기**(Codex 재검증 #4). AC-P00-1·2·3·6·7b·8 충족; AC-P00-4 **부분**(실제 재부팅 Recovery·콘솔 창은 단위 판정·수동 절차로 대체); AC-P00-5 **부분**(정본 CSP로는 Monaco fail — 완화 3항목·D5는 제안); AC-P00-7a **부분**(API key 모드 미실측); AC-P00-9 **판정 완료·정본 갱신 대기**(§7·§13A 제안 diff는 S9.md §3·§4). 부분 항목은 §6의 사용자 결정으로만 닫힌다. **P01 착수는 하지 않는다** — §9 |
+| 결론 | **P00 작업 완료 — 게이트 판정은 2차 승인·예외 결정 대기**(Codex 재검증 #4). AC-P00-1·2·3·6·8 충족; AC-P00-7b 충족(Windows 조합 한정); AC-P00-4 **부분**(실제 재부팅 Recovery·콘솔 창은 단위 판정·수동 절차로 대체); AC-P00-5 **부분**(정본 CSP로는 Monaco fail — 완화 3항목·D5는 제안); AC-P00-7a **부분**(API key 모드 미실측); AC-P00-9 **판정 완료·정본 갱신 대기**(§7·§13A 제안 diff는 S9.md §3·§4). 부분 항목은 §6의 사용자 결정으로만 닫힌다. **P01 착수는 하지 않는다** — §9 |
 
 ## 1. 보고서 11건 + S0 (AC-P00-1)
 
@@ -23,7 +23,7 @@
 | S6 | `S6.md` | **pass(부분 — 정본 CSP로는 Monaco 불가, 완화 3항목; 제거 잔존물 1건)** | 04:32~05:09(4차), Electron 45.2.1, electron-builder 26.18.0, better-sqlite3 13.0.3, node-pty 1.1.0, monaco 0.57.0 | ad44846 → 8a0c99f | 수정 후 수용(8건: H2·M5·L1) |
 | S7 | `S7.md` | **pass**(Step 1~5 + C4 설치 전부 pass) | 05:21~06:23(LIVE 4차 25 passed 578.6s) | ee907c9 → cf99046 | 수정 후 수용(12건 + 시그니처 9건) |
 | S8 | `S8.md` | **pass** | 06:46~06:58, Vitest 5.0.5 | e7a8740 → 269d1d7 | 수정 후 수용(7건 전부) |
-| S9 | `S9.md` | **판정 완료(18행) — 결정 게이트 입력; 정본 갱신 대기** | 07:11~07:22(3차) + 리뷰 반영 4차(§1 S9.md 메타) | f00b638 → (리뷰 반영 커밋, S9.md §10) | 수정 후 수용(7건: H2·M4·L1) → 전부 수용 |
+| S9 | `S9.md` | **판정 완료(18행) — 결정 게이트 입력; 정본 갱신 대기** | 07:11~07:22(3차) + 리뷰 반영 4차(§1 S9.md 메타) | f00b638 → 13878dd(리뷰 반영, S9.md §10) | 수정 후 수용(7건: H2·M4·L1) → 전부 수용 |
 
 각 보고서는 성공 기준별 pass/fail 표·실행 환경·사용량(C5)·Codex 리뷰 절을 가진다. 실패·부분 항목은 §6 범위 축소 제안으로 연결했다.
 
@@ -38,7 +38,7 @@
 | AC-P00-5 | S6 better-sqlite3·node-pty 로드, Monaco+CSP, 데몬 런타임 결정 | **부분** — 로드 ✓·데몬 기동 ✓; **정본 CSP로는 Monaco Diff fail**(완화 3항목에서 pass), D5·CSP 변경은 제안 상태(§6 #5·#6 결정 전까지 미확정) | `S6.md` §1(8 passed: 두 런타임 같은 N-API prebuild 로드, 리빌드 0), §2 D5 제안(동봉 Node), §3 CSP 완화 3항목(style `'unsafe-inline'`·font `data:`·worker `blob:`) — ADR-0005·SECURITY §7 CSP는 **미수정(제안)** |
 | AC-P00-6 | S7 스키마 고정·diff / 3등급 실측 / 자동 선택 2종 / 충돌 4건 + 5행 잠정 / 시그니처 9개 | **충족** | `S7.md` §1~§5·§9, `spikes/s7-schema/codex-schema/`(48 JSON, PROVENANCE), `docs/spikes/skill_conflict_experiments/01~04.md`, `SKILL_CONFLICT_RESOLUTION.md` v2, `docs/agent-studio/skill-signatures/*.json`(9) |
 | AC-P00-7a | S3 인증 모드별 기동 표, ADR-0007 재검토 조건 발동 여부 | **부분** — CLI 로그인 모드 2건 ✓(S1·S2 재사용), API key 모드 2건 **미실측**(키 미보유); ADR-0007 **미발동**(로컬·비상업 전제) + 개정 제안 | `S3.md` §2 표·§3 판정·§4 ADR-0007 개정 제안(미수정) |
-| AC-P00-7b | S4 격리 게이트: 조합별 판정 기록 + 보장 수준 표 갱신 + 불합격 조합 `isolation_warning` 등록 입력 | **충족** — 합격: Codex elevated 외부 경로·외부 호스트; 불합격 경계 6건 등록 입력; §2.1 갱신 = **이 커밋**(§3) | `S4.md` §1·§2, `spikes/fixtures/s4-isolation-results.json`(`isolationWarnings` 6·`guaranteeDowngrades` 4), `SECURITY_MODEL.md` §2.1(갱신 이력 2026-11-02) |
+| AC-P00-7b | S4 격리 게이트: 조합별 판정 기록 + 보장 수준 표 갱신 + 불합격 조합 `isolation_warning` 등록 입력 | **충족(Windows 조합 한정 — S4.md 자체 판정 '부분'과 정합: WSL2·mac/Linux·Claude sandbox 미실측, 최종 리뷰 #5)** — 합격: Codex elevated 외부 경로·외부 호스트; 불합격 경계 6건 등록 입력; §2.1 갱신 = **이 커밋**(§3) | `S4.md` §1·§2, `spikes/fixtures/s4-isolation-results.json`(`isolationWarnings` 6·`guaranteeDowngrades` 4), `SECURITY_MODEL.md` §2.1(갱신 이력 2026-11-02) |
 | AC-P00-8 | S8 크래시·재시작 중복 적용 0, blob 3분기 각 1회 | **충족** | `S8.md` §1(12 passed: patch-then-crash·crash-before-apply·commit-then-crash·before-record·before-commit, unverifiable 잠금), `spikes/fixtures/s8-idempotency-results.json` |
 | AC-P00-9 | S9 18행 판정 + 공유/분리 비교 + 각 CAP 1/2/3단 경로 확정(**§7 갱신**) | **판정 완료 / 정본 갱신 대기** — 18행 status·reached·evidence ✓, 공유 vs 분리 ✓(V31 해소), §7·§13A 갱신은 **제안 diff**(S9.md §3·§4) → 사용자 승인 후 적용해야 "통과"(Codex 리뷰 #1) | `S9.md` §1·§2·§3·§4, `spikes/fixtures/s9-capabilities-results.json` |
 
@@ -88,8 +88,8 @@ Claude 비용은 SDK가 돌려준 값의 합이고 Codex는 ChatGPT 로그인 �
 
 | 상태 | 항목 |
 |---|---|
-| **해소** | V7(Windows, 콘솔 1건 수동), V8, V11(15분 보류 ✓), V12, V13(strict 0 관찰), V14, V15, V16, V17, V18, V19, V23(리빌드 불필요), V26(4건 확정·5행 잠정), V27, V28(0.166.0 기준), V29, V30(부분 부정), V31, V33(C3 불필요) |
-| **부분 해소** | V6(실측 ✓ — 동봉 Node 제안, ADR-0005 반영 대기), V9(완화 3항목 실측 ✓ — SECURITY §7 CSP 반영 대기), V35(명단·해시 ✓ — 8종 중 실행 관찰 4종), V3(문서·이미지 플러그인 헤드리스 ✓, computer-use 2단, synced 노출만), V4(설치 크기·메모리 S6 측정 — mac/Linux P11b), V5(약관 — Codex 로컬 허용/상업 불허, Claude 두 갈래), V10(Windows 키링만), V20(노출 ✓, 실행 미실측), V21(로그인 모드 ✓, API key 미실측), V22(노출 ✓, 호출 미실측), V24(발견 8/8, 실행 4/8), V34(4회 표본) |
+| **해소** | V7(Windows, 콘솔 1건 수동), V8, V11(15분 보류 ✓), V12, V14, V15, V16, V17, V18, V19, V23(리빌드 불필요), V26(4건 확정·5행 잠정), V27, V28(0.166.0 기준), V29, V30(부분 부정), V31, V33(C3 불필요) |
+| **부분 해소** | V13(S2 자체 판정: `mcpServers:{}`+strict 로 MCP 도구 0 관찰 — 가동 중인 사용자 MCP 배제는 미실증, S9 (c) 재비교는 Codex 측만 수행; 최종 리뷰 #4), V6(실측 ✓ — 동봉 Node 제안, ADR-0005 반영 대기), V9(완화 3항목 실측 ✓ — SECURITY §7 CSP 반영 대기), V35(명단·해시 ✓ — 8종 중 실행 관찰 4종), V3(문서·이미지 플러그인 헤드리스 ✓, computer-use 2단, synced 노출만), V4(설치 크기·메모리 S6 측정 — mac/Linux P11b), V5(약관 — Codex 로컬 허용/상업 불허, Claude 두 갈래), V10(Windows 키링만), V20(노출 ✓, 실행 미실측), V21(로그인 모드 ✓, API key 미실측), V22(노출 ✓, 호출 미실측), V24(발견 8/8, 실행 4/8), V34(4회 표본) |
 | **미해소(이월)** | V1(P07), V2(P05), V25(P07), V32(P10a) |
 | 신규 제안 | **V36** `mcpServerStatus/list`·`skills/list`는 initialize 직후 불완전 — 유효 설정 스냅숏(R18)은 집합 안정화 폴링 필요(S9 §2) / **V37** 분리 `CODEX_HOME` 로그인 재구성 경로(`account/login/start` 또는 auth 복사) 미실측(P02 T2) / **V38** Codex v2 아이템 `imageGeneration`(S1 스키마 외) 어댑터 매핑(P01) / **V39** Codex Desktop 앱 미실행 상태의 computer-use 1단 가용성(S9 재실측) |
 
@@ -111,6 +111,7 @@ Claude 비용은 SDK가 돌려준 값의 합이고 Codex는 ChatGPT 로그인 �
 | 12 | S8 | DATABASE_SCHEMA §3 `tree_sha` 필수 명시 | 승인 시 수정 |
 | 13 | S6 제거 잔존물(재검증 #7) | 무인 제거 후 updater 설치 파일 + 잠긴 빈 설치 폴더 1건 잔존 | 제품의 "제거 완료" 기준(잔존물 허용 목록·재시도·재부팅 후 정리)을 P11a 입력으로 결정; 설치물 재시험 1회 |
 | 14 | S1c/S4 | Codex `readOnly` 네트워크(외부 호스트·loopback)·OS 입력 API 스크립트는 직접 미실측(§2.1 UNVERIFIED 경로, 재검증 #1·#2) | V1 SE-07·SE-10 로 이월 또는 P00 추가 실측 1회(S4 하네스 readOnly 변형, 비용 소) |
+| 15 | S0/공개 이력(최종 리뷰 #1) | 공개 `main` 이력에 S0 커밋 `8c1de76` diff 의 사용자명 5건(`git show 8c1de76 \| grep -c` 로 확인), S2/S4 커밋 diff 의 SDK 세션 id 잔존(HEAD 트리는 0건 — 이후 커밋이 마스킹) | **수용**(사용자명은 GitHub 계정명과 동일·세션 id 는 비밀 아님) 또는 **이력 재작성**(orphan 재생성 + force-push, 협업자 없음·비용 소 — 세션 밖 부작용이라 이 세션은 하지 않음) |
 
 ## 7. 정본 갱신 제안 목록 (이 커밋에서 수정하지 않음)
 
@@ -133,4 +134,25 @@ Claude 비용은 SDK가 돌려준 값의 합이고 Codex는 ChatGPT 로그인 �
 
 ## 9. 2차 승인 요청
 
-P01 착수는 이 문서와 보고서 11건을 사용자가 검토하고 §6 결정(특히 #1 API key, #3 WSL2, #5 D5, #6 CSP, #10 C9, #11 §7 갱신)을 내린 뒤에만 시작한다. 이 세션은 P01 작업을 시작하지 않았다.
+P01 착수는 이 문서와 보고서 11건을 사용자가 검토하고 §6 결정(특히 #1 API key, #3 WSL2, #5 D5, #6 CSP, #10 C9, #11 §7 갱신, #15 공개 이력)을 내린 뒤에만 시작한다. 이 세션은 P01 작업을 시작하지 않았다.
+
+## 10. 최종 whole-branch 리뷰 (fresh reviewer agent, 새 컨텍스트, HEAD c5e0337 기준, 판정 "Approve with fixes") — 반영 커밋: 이 커밋
+
+리뷰어는 tsc 0·62 passed·HEAD 트리 비밀/홈 경로/사용자명 0건을 확인했다. 지적 11건을 효과 기준으로 재등급해 Important 5건 + Minor 중 보고 정확성·마스킹 누출에 닿는 3건을 1회 fix pass 로 반영했고, 나머지 3건은 보류(ledger `Final: minor (deferred)`).
+
+| # | 등급(리뷰어→재등급) | 지적 | 처리 |
+|---|---|---|---|
+| 1 | Important | 공개 `main` 이력에 S0 커밋 `8c1de76` diff 의 사용자명 5건, S2/S4 커밋 diff 의 SDK 세션 id 잔존(HEAD 트리는 0건) | **결정 항목으로 등록** — §6 #15. 이력 재작성(force-push)은 세션 밖 부작용이라 하지 않음 |
+| 2 | Important | Cloudflare 챌린지 토큰(`__cf_chl_tk`, `cRay` 등)·403 HTML 본문이 S9 결과 픽스처(`toolsError` 17,468자)·녹화 3개·리뷰 로그(archive 19·reviews 8)에 잔존, 결과 픽스처가 `mask()` 미경유 | **수정** — `mask.ts` CF 규칙 2개 + `truncateErrorBody`(200자 상한), `probe.ts` McpRow `toolsError` 절단, `s9.test.ts` 픽스처 쓰기 `mask()` 경유 + 계약 단언 2건, `mask_archive.py` 동일 규칙; 픽스처·녹화는 LIVE 재실행 없이 재마스킹(S9.md §6) |
+| 3 | Important | `judge()`가 승인 요청·효과 모두 없는 턴을 시도 여부와 무관하게 `blocked`로 판정 | **수정** — `Observation.attempted` + `inconclusive` 값 추가(시도 증거 없으면 `blocked` 금지), LIVE 하네스는 `requestApproval` 만 승인으로 집계·commandExecution/fileChange(Codex)·쓰기 도구 PreToolUse(Claude)를 시도 증거로 전달. 커밋된 S4 픽스처의 `blocked` 행은 전부 `cmds:` 기록이 있어 재실행 불필요(CI 테스트로 고정) |
+| 4 | Important | §5 V13 "해소"는 S2 자체 판정(부분)보다 높음 | **수정** — "부분 해소"로 이동 |
+| 5 | Important | AC-P00-7b "충족" vs S4.md 자체 판정 "부분" | **수정** — "충족(Windows 조합 한정)"으로 범위 명시 |
+| 6 | Minor→반영 | S4.md §1 행5 "never 정책에서 4/4 bypassed"는 실제 never 2/2(기본 4행 합계 3 bypassed·1 approval_requested) | **수정** — 수치 정정 |
+| 7 | Minor | S8 win32 `status===1` 단언이 약함 | **보류** |
+| 8 | Minor→반영 | §1 S9 행 커밋 셀 플레이스홀더 | **수정** — `13878dd` |
+| 9 | Minor→반영 | `mask_archive.py` THREAD_ID 가 `01a1` 고정(mask.ts 는 `01[0-9a-f]{6}`) | **수정** — 규칙 통일(재실행 결과 archive 0건 추가 thread id, CF 토큰 189+99 치환) |
+| 10 | Minor | 픽스처의 UUIDv4 5,127종(세션·아이템 id) | **보류** — 비밀 아님, 상관 관계 분석용 가치 있음(S0 결정 유지) |
+| 11 | Minor | 시그니처 `reviewed_by` v2 표기 | **보류** |
+| + | 제안 | S1c §2 writableRoots 추정 해소 문구 | **반영** — S1c.md §3 첫 항목에 한 줄 |
+
+Deferred minors(#7·#10·#11)는 2차 승인 시 사용자 결정으로 닫는다.

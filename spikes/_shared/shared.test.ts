@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSampleRepo } from "./sampleRepo.js";
-import { mask } from "./mask.js";
+import { mask, truncateErrorBody } from "./mask.js";
 import { addUsage, emptyUsage } from "./usage.js";
 
 describe("_shared", () => {
@@ -36,6 +36,20 @@ describe("_shared", () => {
     const partial = userInfo().username.slice(0, 2);
     const s = mask(`{"text":"C:${bs}${bs}Users${bs}${bs}${partial}"},{"text":"C:/Users/someoneelse/x"},{"partial_json":"Users${bs}${bs}${bs}${bs}${partial}"}`);
     expect(s).toBe(`{"text":"C:${bs}${bs}Users${bs}${bs}<user>"},{"text":"C:/Users/<user>/x"},{"partial_json":"Users${bs}${bs}${bs}${bs}<user>"}`);
+  });
+  it("mask: Cloudflare 챌린지 토큰(__cf_chl_tk 질의값, cH/cRay/md 등 챌린지 옵션 값)을 치환한다(최종 리뷰 #2)", () => {
+    const s = mask(`u=/mcp?__cf_chl_tk=YzaZTI8-1793572841-1.0.1.1-_24Q&x=1 opt={cFPWv: 'g',cH: '_T5TJeBdx9njK',cRay: 'a53e67158fb13e86',cUPMDTk:"/backend/x?__cf_chl_tk=abc.def-1",md: 'lUo5tYi.175Gb'} keep="md":"ok"`);
+    expect(s).not.toMatch(/YzaZ|_T5TJ|a53e67158fb13e86|lUo5|abc\.def/);
+    expect(s).toContain("__cf_chl_tk=<cf-token>&x=1");
+    expect(s).toContain("cRay: '<cf-token>'");
+    expect(s).toContain('"md":"ok"'); // JSON 키 형태는 건드리지 않는다
+  });
+  it("truncateErrorBody: 긴 오류 본문(HTML 챌린지)을 상한에서 잘라 길이만 남긴다", () => {
+    const long = "MCP startup failed: " + "<html><body>" + "x".repeat(5000) + "</body></html>";
+    const t = truncateErrorBody(long, 200);
+    expect(t.length).toBeLessThan(300);
+    expect(t).toMatch(/<error-body-removed len=\d+>$/);
+    expect(truncateErrorBody("short", 200)).toBe("short");
   });
   it("usage: 누적", () => {
     const u = addUsage(emptyUsage("codex"), { calls: 1, inputTokens: 10 });

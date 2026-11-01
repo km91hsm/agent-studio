@@ -20,7 +20,11 @@ import socket
 import sys
 from pathlib import Path
 
-THREAD_ID = re.compile(r"\b01a1[0-9a-f]{4}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}\b")
+# spikes/_shared/mask.ts 의 THREAD_ID 와 동일 규칙(UUID v7, `01` 접두) — 최종 리뷰 #9: `01a1` 고정 해제
+THREAD_ID = re.compile(r"\b01[0-9a-f]{6}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}\b")
+# Cloudflare 챌린지(원격 MCP 403 HTML)의 요청 상관 토큰 — mask.ts CF_QUERY/CF_OPTS 와 동일 규칙(최종 리뷰 #2)
+CF_QUERY = re.compile(r"(__cf_chl_tk|__cf_chl_rt_tk|__cf_chl_f_tk|cf_chl_rc_i)=(?!<cf-token>)[^&\"'\s<\\]+")
+CF_OPTS = re.compile(r"\b(cH|cRay|md|mdrd|cUPMDTk|cFPWv|cNounce|cTplV|cZone|cvId|cITimeS)(\s*:\s*)(['\"])(?!<cf-token>)(?:(?!\3).)*\3")
 TEXT_SUFFIXES = {".md", ".json", ".jsonl", ".log", ".tsv", ".txt", ".toml", ".yaml", ".yml"}
 REMOVE = [
     "docs/planning/archive/evidence/USER_DIRECTIVE.md",
@@ -39,7 +43,9 @@ def mask_text(text: str, usernames: list[str], hostnames: list[str] = ()) -> tup
             users += text.count(host)
             text = text.replace(host, "<host>")
     text, threads = THREAD_ID.subn("<thread-id>", text)
-    return text, users, threads
+    text, cf_q = CF_QUERY.subn(r"\1=<cf-token>", text)
+    text, cf_o = CF_OPTS.subn(r"\1\2\3<cf-token>\3", text)
+    return text, users, threads + cf_q + cf_o
 
 
 def main() -> int:
@@ -69,7 +75,7 @@ def main() -> int:
                 with open(p, "w", encoding="utf-8", newline="") as f:
                     f.write(new)
 
-    print("| 파일 | 사용자명 치환 | thread id 치환 |")
+    print("| 파일 | 사용자명 치환 | thread id·cf 토큰 치환 |")
     print("|---|---|---|")
     for path, u, t in rows:
         print(f"| `{path}` | {u} | {t} |")

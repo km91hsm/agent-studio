@@ -15,7 +15,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Server } from "node:http";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSampleRepo, type SampleRepo } from "../_shared/sampleRepo.js";
@@ -83,15 +83,19 @@ async function runCodex(c: CodexCase): Promise<IsolationRow> {
   const target = targetPath(c.area, repo, c.label);
   const client = new AppServerClient({ label: `s4-${c.label}`, configOverrides: [`windows.sandbox="${c.variant}"`] });
   let approvals = 0;
+  let fileChanges = 0;
   const records: CommandRecord[] = [];
   client.onServerRequest((req) => {
-    approvals++;
-    if (req.method === "item/fileChange/requestApproval" || req.method === "item/commandExecution/requestApproval") client.respond(req.id, { decision: "decline" });
-    else client.respondError(req.id, -32601, `spike does not handle ${req.method}`);
+    // 최종 리뷰 #3: 승인 요청(`*/requestApproval`)만 집계한다 — 다른 서버 요청은 승인이 아니다
+    if (req.method === "item/fileChange/requestApproval" || req.method === "item/commandExecution/requestApproval") {
+      approvals++;
+      client.respond(req.id, { decision: "decline" });
+    } else client.respondError(req.id, -32601, `spike does not handle ${req.method}`);
   });
   client.onNotification("item/completed", (n) => {
     const item = n.params.item as { type: string; command?: string; exitCode?: number | null; status?: string; aggregatedOutput?: string | null };
     if (item.type === "commandExecution") records.push({ command: item.command ?? "", output: item.aggregatedOutput ?? "", exitCode: item.exitCode ?? null, status: item.status });
+    if (item.type === "fileChange") fileChanges++;
   });
   try {
     await client.initialize();
@@ -123,7 +127,7 @@ async function runCodex(c: CodexCase): Promise<IsolationRow> {
       variantApplied: c.variant === "elevated" ? "verified" : "unverified",
       approvalPolicy: c.approvalPolicy,
       area: c.area,
-      verdict: judge({ approvalRequests: approvals, effect }),
+      verdict: judge({ approvalRequests: approvals, effect, attempted: records.length > 0 || fileChanges > 0 }),
       evidence: `approvals=${approvals} effect=${effect} turn=${done.turn.status}; cmds: ${summary.join(" || ").slice(0, 600)}; agent: ${agent.slice(0, 200)}`,
     };
     rows.push(row);
@@ -166,7 +170,7 @@ async function runClaude(c: ClaudeCase): Promise<IsolationRow> {
       variantApplied: "verified",
       approvalPolicy: c.policy,
       area: c.area,
-      verdict: judge({ approvalRequests: approvals, effect }),
+      verdict: judge({ approvalRequests: approvals, effect, attempted: run.preToolUse.some((h) => WRITE_TOOLS.has(h.tool_name)) }), // 최종 리뷰 #3: 쓰기/셸 도구 호출 관찰이 시도 증거
       evidence: `canUseTool denies=${approvals} effect=${effect} result=${result.subtype}; tools: ${run.preToolUse.map((h) => h.tool_name).join(",")}; final: ${(run.finalText() ?? "").slice(0, 200)}`,
     };
     rows.push(row);
@@ -252,5 +256,22 @@ describe.skipIf(!LIVE)("S4 isolation gate (LIVE)", () => {
       for (const policy of w.bypassedPolicies) expect(rows.find((r) => r.provider === w.provider && r.area === w.area && r.variant === w.variant && r.sandbox === w.sandbox && r.approvalPolicy === policy)?.verdict).toBe("bypassed");
     // 외부 호스트 ENFORCED 판정의 전제: 샌드박스 밖에서는 같은 요청이 응답을 받는다(아니면 차단 원인을 샌드박스로 단정할 수 없다)
     expect(observations.externalControl).toBeDefined();
+  });
+});
+
+describe("S4 — 최종 whole-branch 리뷰 반영 (CI, 순수 판정·픽스처 대조)", () => {
+  it("judge: 시도 증거(명령 실행·fileChange)가 없으면 blocked 가 아니라 inconclusive 다(리뷰 #3 — 모델이 시도하지 않은 턴을 '차단'으로 세지 않는다)", () => {
+    expect(judge({ approvalRequests: 0, effect: false, attempted: false })).toBe("inconclusive");
+    expect(judge({ approvalRequests: 0, effect: false, attempted: true })).toBe("blocked");
+    expect(judge({ approvalRequests: 1, effect: false, attempted: false })).toBe("approval_requested");
+    expect(judge({ approvalRequests: 0, effect: true, attempted: false })).toBe("bypassed");
+  });
+  it("커밋된 S4 픽스처: 모든 행의 판정값이 blocked|approval_requested|bypassed 이고, blocked 행은 전부 실행 시도 기록(cmds)을 가진다", () => {
+    const j = JSON.parse(readFileSync(RESULTS, "utf8")) as { rows: IsolationRow[] };
+    expect(j.rows.length).toBeGreaterThan(0);
+    for (const r of j.rows) {
+      expect(["blocked", "approval_requested", "bypassed"], `${r.provider}/${r.area}/${r.variant}/${r.approvalPolicy}`).toContain(r.verdict);
+      if (r.verdict === "blocked") expect(r.evidence, `${r.area}/${r.variant}/${r.approvalPolicy} needs an attempt`).toMatch(/cmds: \[/);
+    }
   });
 });
