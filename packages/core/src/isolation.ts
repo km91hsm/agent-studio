@@ -78,7 +78,7 @@ export class PolicyGate {
 
   constructor(
     private readonly store: EventStore,
-    private readonly projectId: string,
+    readonly projectId: string,
     private readonly now: () => number = Date.now,
   ) {
     store.subscribe(0, (e) => this.applyEvent(e));
@@ -89,7 +89,8 @@ export class PolicyGate {
     if (e.type === "ProjectPolicyChanged" && e.payload.after) {
       this.current = e.payload.after as ProjectPolicy;
       if (typeof e.payload.combo === "string" && e.payload.combo) this.lastCombo = e.payload.combo;
-      if (typeof e.payload.confirmed_by_request === "string") this.answered.delete(e.payload.confirmed_by_request);
+      // 어떤 정책 변경이든 그 이전에 확인된(미적용) 요청의 next_policy 를 대체한다 — 재기동 recover() 가 옛 정책으로 덮지 않는다(리뷰B#10)
+      this.answered.clear();
     } else if (e.type === "UserInputRequested" && e.payload.kind === "isolation_confirm" && typeof e.payload.request_id === "string") {
       const next = (e.payload.next_policy as ProjectPolicy | undefined) ?? { ...this.current, permissionMode: e.payload.next_permission_mode as PermissionMode };
       this.pendingMap.set(e.payload.request_id, { requestId: e.payload.request_id, combo: String(e.payload.combo), next });

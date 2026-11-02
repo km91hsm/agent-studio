@@ -205,4 +205,18 @@ describe("isolation warnings (AC-P01-6)", () => {
     expect(ofType(s2, "ProjectPolicyChanged")).toHaveLength(1);
     expect(() => g2.confirm(r2.requestId, true)).toThrow(/not pending/);
   });
+
+  it("(i) 리뷰B#10 답변 뒤 다른 정책 변경이 기록되면 재기동 recover() 는 옛 next_policy 로 덮지 않는다", () => {
+    const { store, gate } = setup();
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    if (r.status !== "confirmation_required") throw new Error("expected confirmation");
+    store.append({ type: "UserInputAnswered", projectId: "p1", correlationId: r.requestId, payload: { request_id: r.requestId, kind: "isolation_confirm", answer: "confirmed" } });
+    // 그 뒤의 명시적 정책 변경(확인 불필요)이 확인 대기 중이던 변경을 대체한다
+    expect(gate.setPermissionMode(PLAN_ONLY, {}, "user")).toEqual({ status: "applied" });
+    expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(1);
+    const gate2 = new PolicyGate(store, "p1");
+    expect(gate2.recover()).toEqual([]);
+    expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(1);
+    expect(gate2.policy().permissionMode).toEqual(PLAN_ONLY);
+  });
 });

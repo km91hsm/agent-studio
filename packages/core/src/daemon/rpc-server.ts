@@ -31,6 +31,8 @@ export interface RpcServerOptions {
   now?: () => number;
   /** daemon.shutdown 응답 뒤 서버가 닫힌 다음 호출 */
   onShutdown?: () => void;
+  /** hello→auth 전체 핸드셰이크 제한 시간(기본 HELLO_TIMEOUT_MS). 넘기면 4002 로 닫는다(리뷰B#5) */
+  handshakeTimeoutMs?: number;
 }
 
 export interface RpcServer {
@@ -147,6 +149,11 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
     return { code: RPC_INTERNAL_ERROR, message: err instanceof Error ? err.message : String(err) };
   };
 
+  /** P01 은 단일 프로젝트(gate.projectId)만 섬긴다 — 다른 ID 는 거부(리뷰B#7). projectId 생략은 그 프로젝트로 본다. */
+  function requireProject(projectId: unknown): void {
+    if (projectId !== undefined && projectId !== gate.projectId) throw new RpcFailure(RPC_ERRORS.INVALID_PARAMS, `unknown project ${String(projectId)} (this daemon serves ${gate.projectId})`, { projectId: gate.projectId });
+  }
+
   function dispatch(conn: Conn, method: RpcMethod, params: Record<string, unknown>): unknown {
     switch (method) {
       case "daemon.status":
@@ -167,6 +174,7 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
       case "approval.pending":
         return broker.pending();
       case "policy.get":
+        requireProject(params.projectId);
         return { policy: gate.policy(), badge: gate.badge() };
       case "capabilities.get":
         return { isolationWarnings: allWarnings(store), tokenRef, protocolVersion: RPC_PROTOCOL_VERSION };
@@ -182,6 +190,7 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
         coordinator.decide(String(params.requestId), params.decision as Decision, "user", params.scope as never);
         return {};
       case "policy.set": {
+        requireProject(params.projectId);
         const errors = validatePolicy(params.policy);
         if (errors.length) throw new RpcFailure(RPC_ERRORS.INVALID_PARAMS, "invalid policy", { errors });
         try {
@@ -238,7 +247,8 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
   }
 
   wss.on("connection", (ws) => {
-    const timer = setTimeout(() => ws.close(CLOSE_HELLO_TIMEOUT, "hello timeout"), HELLO_TIMEOUT_MS);
+    // 핸드셰이크 전체(hello → auth)에 하나의 제한 시간 — hello 만 보낸 연결이 무기한 열려 있지 않다(리뷰B#5)
+    const timer = setTimeout(() => ws.close(CLOSE_HELLO_TIMEOUT, "handshake timeout"), opts.handshakeTimeoutMs ?? HELLO_TIMEOUT_MS);
     let stage: "hello" | "auth" | "done" = "hello";
     let serverNonce = "";
     let clientNonce = "";
@@ -253,7 +263,6 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
         /* 형식 오류 → 아래에서 거부 */
       }
       if (stage === "hello") {
-        clearTimeout(timer);
         if (msg.type !== "hello" || typeof msg.clientNonce !== "string" || !msg.clientNonce) return reject(ws, CLOSE_UNAUTHORIZED, "unauthorized");
         if (msg.protocolVersion !== PROTOCOL_VERSION) return reject(ws, CLOSE_PROTOCOL_MISMATCH, `protocol mismatch: daemon=${PROTOCOL_VERSION}`);
         if (!(CLIENT_ROLES as readonly unknown[]).includes(msg.role)) return reject(ws, CLOSE_UNAUTHORIZED, "unauthorized");
@@ -267,6 +276,7 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
       if (msg.type !== "auth" || !proofEquals(typeof msg.clientProof === "string" ? msg.clientProof : undefined, proof(token, serverNonce, clientNonce, "client"))) {
         return reject(ws, CLOSE_UNAUTHORIZED, "unauthorized");
       }
+      clearTimeout(timer);
       stage = "done";
       conn = { ws, role, queue: [] };
       conns.add(conn);

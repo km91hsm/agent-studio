@@ -1,0 +1,1 @@
+2026-11-02T01:34:08.242933Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when UnexpectedServerResponse("HTTP 403: <cloudflare challenge html omitted; original kept in local private evidence>")

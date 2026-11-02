@@ -7,7 +7,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import WebSocket from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 import { DEFAULT_POLICY } from "@agent-studio/protocol";
 import type { JournalEvent } from "@agent-studio/protocol";
 import { DefaultPolicyBroker } from "../approval-broker.js";
@@ -17,6 +17,7 @@ import { MemoryEventStore } from "../journal/memory-store.js";
 import { Scheduler } from "../scheduler.js";
 import { PROTOCOL_VERSION, proof } from "./protocol.js";
 import { DaemonClient, RpcCallError } from "./rpc-client.js";
+import { removeLock } from "./lock.js";
 import { startRpcServer, type RpcServer } from "./rpc-server.js";
 
 const TOKEN = "test-token-0123456789";
@@ -29,19 +30,19 @@ afterEach(async () => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
 
-async function boot(opts: { onShutdown?: () => void } = {}) {
+async function boot(opts: { onShutdown?: () => void; handshakeTimeoutMs?: number } = {}) {
   const stateDir = mkdtempSync(join(tmpdir(), "as-rpc-"));
   dirs.push(stateDir);
   const store = new MemoryEventStore();
   const clock = { t: Date.parse("2026-11-02T00:00:00.000Z") };
   const now = () => clock.t;
   const scheduler = new Scheduler(store, { now });
-  const broker = new DefaultPolicyBroker(store, DEFAULT_POLICY, { now });
-  const coordinator = new ApprovalCoordinator(scheduler, broker, store);
   store.append({ type: "ProjectRegistered", projectId: "p1", payload: { id: "p1", path: stateDir } });
   registerIsolationWarnings(store, loadBundledWarnings());
   const gate = new PolicyGate(store, "p1", now);
-  const server = await startRpcServer({ store, scheduler, broker, coordinator, gate, token: TOKEN, stateDir, tokenRef: "file:test", now, ...(opts.onShutdown && { onShutdown: opts.onShutdown }) });
+  const broker = new DefaultPolicyBroker(store, () => gate.policy(), { now }); // 리뷰B#2: 현재 정책을 매번 조회
+  const coordinator = new ApprovalCoordinator(scheduler, broker, store);
+  const server = await startRpcServer({ store, scheduler, broker, coordinator, gate, token: TOKEN, stateDir, tokenRef: "file:test", now, ...(opts.onShutdown && { onShutdown: opts.onShutdown }), ...(opts.handshakeTimeoutMs !== undefined && { handshakeTimeoutMs: opts.handshakeTimeoutMs }) });
   servers.push(server);
   return { stateDir, store, clock, now, scheduler, broker, coordinator, gate, server };
 }
@@ -288,5 +289,109 @@ describe("rpc (g) shutdown", () => {
     expect(await client.call("daemon.shutdown")).toEqual({ ok: true });
     await until(() => called === 1 && !client.connected);
     expect(existsSync(join(b.stateDir, "daemon.lock"))).toBe(false);
+  });
+});
+
+describe("rpc (h) 리뷰B 핸드셰이크 강화", () => {
+  it("#1 challenge 없이 welcome 만 보내는 위조 서버 → 클라이언트 거부(auth 전송 0), 깨진 JSON 프레임 → 거부", async () => {
+    const seen: string[] = [];
+    const forged = new WebSocketServer({ host: "127.0.0.1", port: 0 });
+    await new Promise<void>((r) => forged.once("listening", () => r()));
+    const port = (forged.address() as { port: number }).port;
+    forged.on("connection", (ws) => {
+      ws.on("message", (raw) => {
+        const m = JSON.parse(String(raw)) as { type: string };
+        seen.push(m.type);
+        if (m.type === "hello") ws.send(JSON.stringify({ type: "welcome", seq: 0, pid: 4242, nonce: "n", protocolVersion: PROTOCOL_VERSION, role: "main" }));
+      });
+    });
+    const lock = { pid: 4242, startedAt: "2026-11-02T00:00:00.000Z", nonce: "n", port, protocolVersion: PROTOCOL_VERSION, tokenRef: "file:x" };
+    try {
+      await expect(DaemonClient.connect({ stateDir: "unused", token: TOKEN, lock, onEvent: () => {} })).rejects.toThrow(/challenge/);
+      expect(seen).toEqual(["hello"]);
+      forged.removeAllListeners("connection");
+      forged.on("connection", (ws) => ws.on("message", () => ws.send("{not json")));
+      await expect(DaemonClient.connect({ stateDir: "unused", token: TOKEN, lock, onEvent: () => {} })).rejects.toThrow(/frame/);
+    } finally {
+      await new Promise<void>((r) => forged.close(() => r()));
+    }
+  });
+
+  it("#5 hello 만 보내고 auth 를 보내지 않는 연결은 handshakeTimeoutMs 뒤 4002 로 닫힌다", async () => {
+    const b = await boot({ handshakeTimeoutMs: 200 });
+    const t0 = Date.now();
+    const r = await rawHandshake(b.server.port, { type: "hello", clientNonce: "cn", protocolVersion: PROTOCOL_VERSION, role: "main" });
+    expect(r.code).toBe(4002);
+    expect(Date.now() - t0).toBeLessThan(2000);
+    expect(b.server.stats().connections).toBe(0);
+  });
+});
+
+describe("rpc (i) 리뷰B 정책·프로젝트", () => {
+  it("#2 policy.set 으로 바뀐 정책이 Broker 판정에 반영된다(exec DENY)", async () => {
+    const b = await boot();
+    const { client } = await connect(b.stateDir);
+    const req = { taskId: "t", runId: "r", kind: "approval" as const, category: "exec" as const, request: { command: "npm test" } };
+    expect(b.broker.evaluate(req)).toBe("ASK");
+    const deny = { ...DEFAULT_POLICY, rules: { ...DEFAULT_POLICY.rules, exec: { ...DEFAULT_POLICY.rules.exec, default: "DENY" as const } } };
+    expect(await client.call("policy.set", { projectId: "p1", policy: deny })).toEqual({ status: "applied" });
+    expect(b.broker.evaluate(req)).toBe("DENY");
+  });
+
+  it("#7 다른 projectId 의 policy.get/policy.set 은 -32602 이고 정책은 불변", async () => {
+    const b = await boot();
+    const { client } = await connect(b.stateDir);
+    const e1 = await client.call("policy.get", { projectId: "other" }).catch((e: unknown) => e);
+    expect((e1 as RpcCallError).code).toBe(-32602);
+    const before = b.store.lastSeq();
+    const plan = { ...DEFAULT_POLICY, permissionMode: { ...DEFAULT_POLICY.permissionMode, claude: "plan" as const } };
+    const e2 = await client.call("policy.set", { projectId: "other", policy: plan }).catch((e: unknown) => e);
+    expect((e2 as RpcCallError).code).toBe(-32602);
+    expect(b.store.lastSeq()).toBe(before);
+    expect(await client.call("policy.get", { projectId: "p1" })).toMatchObject({ policy: { permissionMode: DEFAULT_POLICY.permissionMode } });
+  });
+});
+
+describe("rpc (j) 리뷰B 재구독 복구", () => {
+  it("#3 백로그 100건 초과의 첫 배치에 갭이 있어도 connect() 는 성공하고 최종 [1..N]", async () => {
+    const b = await boot();
+    for (let i = 0; i < 60; i++) b.scheduler.submit({ title: `t${i}`, kind: "impl" });
+    const N = b.store.lastSeq();
+    expect(N).toBeGreaterThan(100);
+    let skipped = false;
+    b.server.hooks.mutateBatch = (evs) => {
+      if (!skipped && evs.length > 2) {
+        skipped = true;
+        return [evs[0]!, ...evs.slice(2)];
+      }
+      return evs;
+    };
+    const { client, received } = await connect(b.stateDir);
+    expect(client.connected).toBe(true);
+    await until(() => received.length >= N);
+    expect(received).toEqual(range(N));
+    expect(client.gaps).toBe(1);
+  });
+
+  it("#4 갭 뒤 자동 재접속이 실패하면(락 없음) onDisconnect 1회·connected=false", async () => {
+    const b = await boot();
+    let disconnects = 0;
+    const { client, received } = await connect(b.stateDir, { onDisconnect: () => void disconnects++ });
+    await until(() => client.lastSeq === b.store.lastSeq());
+    removeLock(b.stateDir);
+    let skipped = false;
+    b.server.hooks.mutateBatch = (evs) => {
+      if (!skipped && evs.length > 1) {
+        skipped = true;
+        return [evs[0]!, ...evs.slice(2)];
+      }
+      return evs;
+    };
+    for (let i = 0; i < 5; i++) b.scheduler.submit({ title: `t${i}`, kind: "impl" });
+    await until(() => disconnects === 1, 15_000);
+    expect(client.connected).toBe(false);
+    expect(client.gaps).toBe(1);
+    expect(received.length).toBeLessThan(b.store.lastSeq());
+    await expect(client.reconnect()).rejects.toThrow(/lock/);
   });
 });

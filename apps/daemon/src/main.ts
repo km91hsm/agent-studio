@@ -1,7 +1,7 @@
 /**
  * Orchestrator 데몬 엔트리 (P01 T2). detached Node 프로세스로 실행된다(launcher 가 spawn).
  *   node --import tsx apps/daemon/src/main.ts --dir <stateDir> [--token-store file|keyring] [--port N] [--self-test]
- * 구성: SQLite 저널(`<stateDir>/journal.sqlite`) + Scheduler + DefaultPolicyBroker(DEFAULT_POLICY) + ApprovalCoordinator(tick 5초)
+ * 구성: SQLite 저널(`<stateDir>/journal.sqlite`) + Scheduler + DefaultPolicyBroker(PolicyGate 현재 정책) + ApprovalCoordinator(tick 5초)
  *     + PolicyGate(기본 프로젝트 `default`) + 격리 경고 등록(최초 1회) + RPC 서버 + 락 파일.
  * `--self-test`: 기동 → 락 기록 → 자기 접속(daemon.status) → 종료, exit 0 (CI 실행 계약).
  */
@@ -9,7 +9,6 @@ import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApprovalCoordinator, DaemonClient, DefaultPolicyBroker, allWarnings, ensureToken, loadBundledWarnings, openSqliteStore, PolicyGate, registerIsolationWarnings, Scheduler, selectTokenStore, startRpcServer, type RpcServer } from "@agent-studio/core";
-import { DEFAULT_POLICY } from "@agent-studio/protocol";
 
 export const DEFAULT_PROJECT_ID = "default";
 
@@ -33,14 +32,15 @@ export async function startDaemon(o: DaemonOptions): Promise<RunningDaemon> {
   const token = ensureToken(tokenStore);
   const store = openSqliteStore(join(o.stateDir, "journal.sqlite"));
   const scheduler = new Scheduler(store);
-  const broker = new DefaultPolicyBroker(store, DEFAULT_POLICY);
-  const coordinator = new ApprovalCoordinator(scheduler, broker, store);
   if (!store.read(1).some((e) => e.type === "ProjectRegistered" && e.projectId === DEFAULT_PROJECT_ID)) {
     store.append({ type: "ProjectRegistered", projectId: DEFAULT_PROJECT_ID, payload: { id: DEFAULT_PROJECT_ID, path: o.stateDir, name: DEFAULT_PROJECT_ID } });
   }
   if (allWarnings(store).length === 0) registerIsolationWarnings(store, loadBundledWarnings());
   const gate = new PolicyGate(store, DEFAULT_PROJECT_ID);
   gate.recover();
+  // Broker 는 Gate 의 현재 정책을 매 판정마다 조회한다 — policy.set 변경이 승인 판정에 반영된다(리뷰B#2)
+  const broker = new DefaultPolicyBroker(store, () => gate.policy());
+  const coordinator = new ApprovalCoordinator(scheduler, broker, store);
   let shuttingDown: Promise<void> | undefined;
   const shutdown = (): Promise<void> => {
     if (shuttingDown) return shuttingDown;

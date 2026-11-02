@@ -5,7 +5,7 @@
  *   server → challenge{serverNonce, nonce(락 nonce), pid, serverProof = HMAC(token, "server|serverNonce|clientNonce")}
  *   client → auth{clientProof = HMAC(token, "client|serverNonce|clientNonce")}
  *   server → welcome{seq, pid, nonce, protocolVersion, role}
- * close code: 4001 unauthorized(증명 불일치·형식 오류) / 4002 hello timeout(3s) / 4003 protocol mismatch
+ * close code: 4001 unauthorized(증명 불일치·형식 오류) / 4002 handshake timeout(hello→auth 전체 3s) / 4003 protocol mismatch
  * role: `main`(Shell main 프로세스 — control 메서드 허용) / `renderer`(P01 에서는 사용하지 않음; control 거부 검증용)
  */
 import { createHmac, timingSafeEqual } from "node:crypto";

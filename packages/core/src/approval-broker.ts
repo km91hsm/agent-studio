@@ -53,11 +53,15 @@ export class DefaultPolicyBroker implements ApprovalBroker {
   private readonly ttlMs: number;
   private readonly now: () => number;
 
+  /** 정책 출처: 고정 객체 또는 현재 정책을 돌려주는 함수(PolicyGate.policy). 함수를 주면 policy.set 변경이 다음 판정부터 반영된다(리뷰B#2). */
+  private readonly policySource: () => ProjectPolicy;
+
   constructor(
     private readonly store: EventStore,
-    private readonly policy: ProjectPolicy,
+    policy: ProjectPolicy | (() => ProjectPolicy),
     opts: { ttlMs?: number; now?: () => number } = {},
   ) {
+    this.policySource = typeof policy === "function" ? policy : () => policy;
     this.ttlMs = opts.ttlMs ?? 15 * 60_000;
     this.now = opts.now ?? Date.now;
     store.subscribe(0, (e) => this.applyEvent(e));
@@ -89,7 +93,7 @@ export class DefaultPolicyBroker implements ApprovalBroker {
   }
 
   private rule(category: ApprovalCategory): PolicyRule {
-    return this.policy.rules[category];
+    return this.policySource().rules[category];
   }
 
   evaluate(req: ApprovalRequest): Verdict {

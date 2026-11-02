@@ -25,11 +25,14 @@ const DEFAULT_ENTRY = fileURLToPath(new URL("../../../../apps/daemon/src/main.ts
 const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 const SPAWN_LOCK_STALE_MS = 60_000;
 
-/** 락의 tokenRef 로 토큰 저장소를 고른다(`file:` → 파일, 그 외 → 키링). */
-export function tokenStoreFor(stateDir: string, lock: Pick<LockFile, "tokenRef">): TokenStore {
-  if (lock.tokenRef.startsWith("file:")) return new FileTokenStore(stateDir);
-  const m = /^keyring:([^/]+)\/(.+)$/.exec(lock.tokenRef);
-  return m ? new KeyringTokenStore(m[1], m[2]) : new KeyringTokenStore();
+/**
+ * Shell 설정 모드로 토큰 저장소를 고르고, 락의 `tokenRef` 가 그 저장소의 참조와 일치하는지 확인한다(리뷰B#6).
+ * 락은 검증되지 않은 입력이므로 저장소 선택의 근거가 아니다 — 불일치는 throw(다른 모드로 띄운 데몬 또는 조작된 락).
+ */
+export function tokenStoreFor(stateDir: string, mode: "file" | "keyring", lock: Pick<LockFile, "tokenRef">): TokenStore {
+  const store: TokenStore = mode === "file" ? new FileTokenStore(stateDir) : new KeyringTokenStore();
+  if (lock.tokenRef !== store.ref()) throw new Error(`lock tokenRef ${lock.tokenRef} does not match configured ${mode} store ${store.ref()} — refusing to pick a token store from the lock`);
+  return store;
 }
 
 function acquireSpawnLock(stateDir: string): boolean {
@@ -83,7 +86,7 @@ export async function ensureDaemon(stateDir: string, opts: LaunchOptions = {}): 
     let lastErr: unknown;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const token = tokenStoreFor(stateDir, lock).get();
+        const token = tokenStoreFor(stateDir, opts.tokenStore ?? "keyring", lock).get();
         if (!token) throw new Error("closed before welcome: 4001 token missing in token store");
         const c = await DaemonClient.connect({ stateDir, token, lock, onEvent: () => {} });
         assessment = assessLock(lock, { ...probe, helloNonce: c.welcome?.nonce ?? null });
