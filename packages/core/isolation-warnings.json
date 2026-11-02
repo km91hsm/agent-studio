@@ -1,0 +1,74 @@
+{
+  "$source": "spikes/fixtures/s4-isolation-results.json#isolationWarnings (P00 S4, 2026-11-02) — SECURITY_MODEL §2.1 격리 게이트 불합격 경계 6건. P01 T11 이 데몬 최초 기동 시 WorkspaceSettingsChanged{capabilities:{isolation_warning}} 로 등록한다. 갱신은 S4 재실측 후 이 파일만 바꾼다.",
+  "warnings": [
+    {
+      "provider": "codex",
+      "os": "windows",
+      "sandbox": "workspaceWrite",
+      "variant": "elevated",
+      "variantApplied": "verified",
+      "area": "fs_tmp_parent",
+      "bypassedPolicies": [
+        "on-request",
+        "never"
+      ]
+    },
+    {
+      "provider": "codex",
+      "os": "windows",
+      "sandbox": "workspaceWrite",
+      "variant": "elevated",
+      "variantApplied": "verified",
+      "area": "network_loopback",
+      "bypassedPolicies": [
+        "on-request",
+        "never"
+      ]
+    },
+    {
+      "provider": "codex",
+      "os": "windows",
+      "sandbox": "workspaceWrite",
+      "variant": "unelevated",
+      "variantApplied": "unverified",
+      "area": "network_loopback",
+      "bypassedPolicies": [
+        "on-request",
+        "never"
+      ]
+    },
+    {
+      "provider": "codex",
+      "os": "windows",
+      "sandbox": "workspaceWrite",
+      "variant": "unelevated",
+      "variantApplied": "unverified",
+      "area": "fs_tmp_parent",
+      "bypassedPolicies": [
+        "never"
+      ]
+    },
+    {
+      "provider": "claude",
+      "os": "windows",
+      "sandbox": "native",
+      "variant": "default",
+      "variantApplied": "verified",
+      "area": "fs_outside",
+      "bypassedPolicies": [
+        "allow-all"
+      ]
+    },
+    {
+      "provider": "claude",
+      "os": "windows",
+      "sandbox": "native",
+      "variant": "default",
+      "variantApplied": "verified",
+      "area": "network_loopback",
+      "bypassedPolicies": [
+        "allow-all"
+      ]
+    }
+  ]
+}
