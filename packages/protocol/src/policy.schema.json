@@ -66,7 +66,8 @@
         "trustedProject": { "type": "boolean" },
         "readOnlyBrowse": { "type": "boolean" },
         "readOnlyAuditTool": { "type": "boolean" },
-        "action": { "enum": ["capture", "input"] }
+        "action": { "enum": ["capture", "input"] },
+        "gitOperation": { "enum": ["fetch", "pull", "push", "force_push", "remote_change"] }
       }
     },
     "exception": {

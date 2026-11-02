@@ -194,4 +194,55 @@ describe("Scheduler (AC-P01-1)", () => {
     expect(s2.state(id)).toMatchObject({ status: "WAITING_APPROVAL", resumeFrom: "PLANNING", pendingRequestId: "req-1", lease: { runId: "run-1", fencingToken: token } });
     expect(() => s2.acquireLease(id, "run-2")).toThrow(/lease held/i);
   });
+
+  it("(10) 리뷰A#1 maxSlots=1: 첫 Task 의 lease_acquired 는 통과하고 두 번째 acquireLease 는 slot_unavailable, 만료 뒤 풀린다", () => {
+    const c = clock();
+    const store = new MemoryEventStore(c.now);
+    const s = new Scheduler(store, { now: c.now, maxSlots: 1 });
+    const a = s.submit({ title: "a", kind: "impl" });
+    const b = s.submit({ title: "b", kind: "impl" });
+    const la = s.acquireLease(a, "run-a");
+    expect(s.transition(a, "lease_acquired", { kind: "lease", token: la.fencingToken })).toBe("PLANNING");
+    expect(() => s.acquireLease(b, "run-b")).toThrow(/slot/);
+    expect(store.read(1).filter((e) => e.type === "LeaseAcquired")).toHaveLength(1);
+    c.advance(91_000);
+    expect(s.expireLeases()).toEqual([a]);
+    const lb = s.acquireLease(b, "run-b");
+    expect(s.transition(b, "lease_acquired", { kind: "lease", token: lb.fencingToken })).toBe("PLANNING");
+  });
+
+  it("(11) 리뷰A#2 다른 Task 로 기록된 ApprovalDecided 는 원래 Task 의 approved 를 충족하지 않는다", () => {
+    const { store, s, id, token } = toPlanning();
+    const other = s.submit({ title: "other", kind: "impl" });
+    store.append({ type: "ApprovalRequested", taskId: id, correlationId: "req-x", payload: { request_id: "req-x", kind: "approval", category: "exec", request: {}, requested_at: "t", expires_at: "t" } });
+    s.transition(id, "approval_needed", { kind: "lease", token }, { requestId: "req-x" });
+    const decided = { request_id: "req-x", decision: "accept", by: "user", scope: "once", decided_at: "t" };
+    store.append({ type: "ApprovalDecided", taskId: other, correlationId: "req-x", payload: decided });
+    expect(() => s.transition(id, "approved", { kind: "daemon", requestId: "req-x" })).toThrow(PreconditionFailed);
+    expect(s.state(id).status).toBe("WAITING_APPROVAL");
+    store.append({ type: "ApprovalDecided", taskId: id, correlationId: "req-x", payload: decided });
+    expect(s.transition(id, "approved", { kind: "daemon", requestId: "req-x" })).toBe("PLANNING");
+  });
+
+  it("(12) 리뷰A#5 WAITING_APPROVAL 에서는 heartbeat 가 lease 를 연장하지 않는다(LeaseSuspended, 저널 불변)", () => {
+    const { store, s, id, token } = toPlanning();
+    store.append({ type: "ApprovalRequested", taskId: id, correlationId: "req-h", payload: { request_id: "req-h", kind: "approval", category: "exec", request: {}, requested_at: "t", expires_at: "t" } });
+    s.transition(id, "approval_needed", { kind: "lease", token }, { requestId: "req-h" });
+    const before = s.state(id).lease!.expiresAt;
+    const n = store.lastSeq();
+    expect(() => s.heartbeat(id, token)).toThrow(/suspended/i);
+    expect(s.state(id).lease!.expiresAt).toBe(before);
+    expect(store.lastSeq()).toBe(n);
+  });
+
+  it("(13) 리뷰A#3 check() 는 transition() 과 같은 규칙으로 판정하되 아무것도 기록하지 않는다", () => {
+    const { store, s, id, token } = toPlanning();
+    const n = store.lastSeq();
+    expect(() => s.check(id, "approval_needed", { kind: "lease", token: token + 99 })).toThrow(StaleWriterError);
+    expect(() => s.check(id, "plan_accepted", { kind: "lease", token })).toThrow(PreconditionFailed);
+    expect(() => s.check(id, "cancel", { kind: "lease", token })).toThrow(AuthKindMismatch);
+    expect(s.check(id, "approval_needed", { kind: "lease", token })).toBe("WAITING_APPROVAL");
+    expect(store.lastSeq()).toBe(n);
+    expect(s.state(id).status).toBe("PLANNING");
+  });
 });

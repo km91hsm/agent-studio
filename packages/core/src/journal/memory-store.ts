@@ -1,4 +1,4 @@
-/** 메모리 EventStore — 테스트 전용(투영 없음). */
+/** 메모리 EventStore — 테스트 전용(투영 없음). 밖으로 나가는 객체는 복사본이라 변경해도 저널은 불변(리뷰A#12, SQLite 재조회와 동일 동작). */
 import type { EventStore, JournalEvent, NewEvent } from "./event-store.js";
 import { prepareEvent, Subscribers } from "./event-store.js";
 
@@ -9,17 +9,16 @@ export class MemoryEventStore implements EventStore {
 
   append(e: NewEvent): JournalEvent {
     const stored = prepareEvent(e, this.events.length + 1, this.now);
-    // 저장본은 외부 변경에서 격리한다
-    const frozen: JournalEvent = { ...stored, payload: JSON.parse(JSON.stringify(stored.payload)) };
+    const frozen: JournalEvent = structuredClone(stored);
     this.events.push(frozen);
-    this.subs.emit(frozen);
-    return frozen;
+    this.subs.emit(structuredClone(frozen));
+    return structuredClone(frozen);
   }
 
   read(fromSeq: number, toSeq?: number): JournalEvent[] {
     const from = Math.max(1, fromSeq);
     const to = toSeq ?? this.events.length;
-    return this.events.slice(from - 1, Math.max(from - 1, to));
+    return this.events.slice(from - 1, Math.max(from - 1, to)).map((e) => structuredClone(e));
   }
 
   lastSeq(): number {

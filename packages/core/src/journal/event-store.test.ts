@@ -35,6 +35,22 @@ const ev = (type: string, payload: Record<string, unknown> = {}, extra: Partial<
   ({ type, payload, ...extra }) as Parameters<EventStore["append"]>[0];
 
 describe.each(factories)("EventStore contract (%s)", (_name, make) => {
+  it("리뷰A#12 append/read/subscribe 가 돌려준 객체를 바꿔도 저널 기록은 변하지 않는다", () => {
+    const s = make();
+    const a = s.append(ev("AgentEvent", { nested: { v: 1 } }, { taskId: "t1" }));
+    (a.payload.nested as { v: number }).v = 99;
+    (a as { type: string }).type = "Hacked";
+    expect(s.read(1)[0]!.payload).toEqual({ nested: { v: 1 } });
+    expect(s.read(1)[0]!.type).toBe("AgentEvent");
+    const r = s.read(1)[0]!;
+    (r.payload.nested as { v: number }).v = 77;
+    expect(s.read(1)[0]!.payload).toEqual({ nested: { v: 1 } });
+    const seen: JournalEvent[] = [];
+    s.subscribe(1, (e) => seen.push(e));
+    (seen[0]!.payload.nested as { v: number }).v = 55;
+    expect(s.read(1)[0]!.payload).toEqual({ nested: { v: 1 } });
+  });
+
   it("append 가 seq 1,2,3 과 ULID·ts 를 채운다", () => {
     const s = make();
     const a = s.append(ev("TaskCreated", { title: "t" }, { taskId: "t1" }));

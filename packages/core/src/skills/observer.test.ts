@@ -2,11 +2,13 @@
  * T12 스킬 관찰자 최소 구현 — Claude SDK 메시지의 Skill tool_use/tool_result → SkillSelected/SkillLoadObserved,
  * Codex explicit `{type:'skill'}` 입력 + 정상 응답 → SkillInjectionAccepted 만(implicit 판정은 P07 시그니처 매칭 소유).
  * 녹화: spikes/fixtures/claude-2.1.316/s7-claude-explicit-tdd.jsonl (줄 형식 `{t, msg}`; 9행 Skill tool_use, 11행 tool_result).
+ * 리뷰A#10: Codex 이벤트는 (a) 발견·(b) `$name` 동반 여부를 payload 에 함께 적어 판정자가 과대평가하지 않게 한다.
+ * 리뷰A#11: run 별 pending 상태는 result 처리 후·forgetRun 으로 정리된다.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { observeClaudeMessage, observeCodexSkillInjection } from "./observer.js";
+import { forgetRun, observeClaudeMessage, observeCodexSkillInjection, pendingRuns } from "./observer.js";
 
 const REC = fileURLToPath(new URL("../../../../spikes/fixtures/claude-2.1.316/s7-claude-explicit-tdd.jsonl", import.meta.url));
 const lines = readFileSync(REC, "utf8").split("\n").filter(Boolean).map((l) => (JSON.parse(l) as { msg: unknown }).msg);
@@ -22,6 +24,7 @@ describe("observeClaudeMessage", () => {
     expect(sel!.payload).toMatchObject({ skill_id: "test-driven-development", selection_reason: "AGENT_SELF", invocation_mode: "implicit", expected_lead: "test-driven-development", tool_use_id: "toolu_01E6swQMJziaJf1vM2Py5VoM" });
     expect(load!.payload).toMatchObject({ skill_id: "test-driven-development", tool_use_id: "toolu_01E6swQMJziaJf1vM2Py5VoM" });
     expect(load!.correlationId).toBe("toolu_01E6swQMJziaJf1vM2Py5VoM");
+    expect(pendingRuns()).not.toContain("run-1"); // result 처리 후 빈 상태는 제거
   });
 
   it("Skill 이 아닌 tool_use(Read/Bash 등)·시스템 메시지 → 0건", () => {
@@ -30,6 +33,7 @@ describe("observeClaudeMessage", () => {
     expect(observeClaudeMessage({ type: "system", subtype: "init" }, ctx)).toEqual([]);
     expect(observeClaudeMessage(null, ctx)).toEqual([]);
     expect(observeClaudeMessage("nonsense", ctx)).toEqual([]);
+    expect(pendingRuns()).not.toContain("run-1");
   });
 
   it("Skill tool_result 가 is_error 면 SkillLoadObserved 를 내지 않고, 모르는 tool_use_id 의 result 도 무시한다", () => {
@@ -41,25 +45,36 @@ describe("observeClaudeMessage", () => {
     expect(observeClaudeMessage(okUnknown, ctx)).toEqual([]);
   });
 
-  it("관찰자는 run 마다 상태를 가지므로 다른 ctx 의 result 는 짝이 맞지 않는다", () => {
+  it("관찰자는 run 마다 상태를 가지므로 다른 ctx 의 result 는 짝이 맞지 않고, forgetRun 뒤에는 짝이 사라진다", () => {
     const use = { type: "assistant", message: { content: [{ type: "tool_use", id: "s2", name: "Skill", input: { skill: "ponytail" } }] } };
     const res = { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "s2", content: "Launching skill: ponytail" }] } };
     observeClaudeMessage(use, ctx);
+    expect(pendingRuns()).toContain("run-1");
     expect(observeClaudeMessage(res, { taskId: "t9", runId: "run-9" })).toEqual([]);
+    expect(pendingRuns()).not.toContain("run-9");
     expect(observeClaudeMessage(res, ctx).map((e) => e.type)).toEqual(["SkillLoadObserved"]);
+    expect(pendingRuns()).not.toContain("run-1");
+    observeClaudeMessage(use, ctx);
+    forgetRun("run-1");
+    expect(pendingRuns()).not.toContain("run-1");
+    expect(observeClaudeMessage(res, ctx)).toEqual([]);
   });
 });
 
 describe("observeCodexSkillInjection", () => {
   const codexCtx = { taskId: "t1", runId: "run-c" };
-  it("skill 입력 + 정상 응답 → SkillInjectionAccepted 1건만", () => {
-    const out = observeCodexSkillInjection([{ type: "text", text: "do it" }, { type: "skill", name: "tdd", path: "D:/skills/tdd/SKILL.md" }], { threadId: "th", turnId: "tu" }, codexCtx);
+  it("skill 입력 + 정상 응답 → SkillInjectionAccepted 1건만, payload 에 mentioned/discovered 동반", () => {
+    const out = observeCodexSkillInjection([{ type: "text", text: "do it $tdd" }, { type: "skill", name: "tdd", path: "D:/skills/tdd/SKILL.md" }], { threadId: "th", turnId: "tu" }, codexCtx);
     expect(out.map((e) => e.type)).toEqual(["SkillInjectionAccepted"]);
-    expect(out[0]!.payload).toEqual({ skill_id: "tdd", path: "D:/skills/tdd/SKILL.md", invocation_mode: "explicit" });
+    expect(out[0]!.payload).toEqual({ skill_id: "tdd", path: "D:/skills/tdd/SKILL.md", invocation_mode: "explicit", mentioned: true, discovered: null });
     expect(out[0]!.taskId).toBe("t1");
     expect(out[0]!.agentRunId).toBe("run-c");
   });
-  it("skill 입력 없음 → 0건, 응답 오류 → 0건, skill 2개 → 2건", () => {
+  it("$name 텍스트 없음 → mentioned false, discovered 목록이 있으면 포함 여부, skill 입력 없음 → 0건, 응답 오류 → 0건, skill 2개 → 2건", () => {
+    const one = observeCodexSkillInjection([{ type: "text", text: "x" }, { type: "skill", name: "tdd", path: "p" }], {}, { ...codexCtx, discovered: ["tdd", "other"] });
+    expect(one[0]!.payload).toMatchObject({ mentioned: false, discovered: true });
+    const none = observeCodexSkillInjection([{ type: "skill", name: "tdd", path: "p" }], {}, { ...codexCtx, discovered: ["other"] });
+    expect(none[0]!.payload).toMatchObject({ discovered: false });
     expect(observeCodexSkillInjection([{ type: "text", text: "x" }], {}, codexCtx)).toEqual([]);
     expect(observeCodexSkillInjection([{ type: "skill", name: "tdd", path: "p" }], { error: { code: -32602, message: "bad" } }, codexCtx)).toEqual([]);
     expect(observeCodexSkillInjection([{ type: "skill", name: "a", path: "pa" }, { type: "skill", name: "b", path: "pb" }], {}, codexCtx).map((e) => e.payload.skill_id)).toEqual(["a", "b"]);

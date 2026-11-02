@@ -37,6 +37,8 @@ export interface Signals {
   readOnlyBrowse?: boolean;
   readOnlyAuditTool?: boolean;
   action?: "capture" | "input";
+  /** 원격 Git 작업 종류(SECURITY §2: fetch ASK, push·force·remote 변경 DENY) */
+  gitOperation?: "fetch" | "pull" | "push" | "force_push" | "remote_change";
 }
 
 export interface PolicyException {
@@ -77,7 +79,7 @@ export const DEFAULT_POLICY: ProjectPolicy = {
     fs_write: { default: "AUTO", scope: "project", exceptions: [{ when: { pathOutsideWorktree: true }, verdict: "DENY", scope: "once" }], note: "worktree 내 AUTO / 외부 DENY(once 예외)" },
     exec: { default: "ASK", scope: "once", exceptions: [{ when: { readOnlyVerified: true }, verdict: "AUTO" }], note: "검증된 읽기 전용만 AUTO; 반복은 짧은 until-expiry" },
     network: { default: "ASK", scope: "once", exceptions: [{ when: { unregisteredHost: true }, verdict: "DENY" }], note: "호스트·프로토콜·포트 once" },
-    git_remote: { default: "DENY", scope: "once", exceptions: [explicitAsk("once")], note: "push·force·remote 변경 DENY; 사용자가 push 액션을 명시 선택하면 그 1회만 ALWAYS_ASK(SE-01b)" },
+    git_remote: { default: "DENY", scope: "once", exceptions: [explicitAsk("once"), { when: { gitOperation: "fetch" }, verdict: "ASK", scope: "once" }], note: "push·force·remote 변경 DENY; 사용자가 push 액션을 명시 선택하면 그 1회만 ALWAYS_ASK(SE-01b); fetch 는 ASK" },
     db_change: { default: "ALWAYS_ASK", scope: "once", note: "대상 DB·migration 해시" },
     dep_install: { default: "ALWAYS_ASK", scope: "once", note: "lockfile·패키지 목록" },
     hook_enable: { default: "DENY", scope: "project", exceptions: [explicitAsk("project")], note: "Hook 해시 변경 시 만료" },

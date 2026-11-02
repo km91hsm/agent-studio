@@ -61,6 +61,16 @@ export class LeaseHeld extends SchedulerError {
     super("lease_held", `lease held: task ${taskId} already has a live lease`);
   }
 }
+export class LeaseSuspended extends SchedulerError {
+  constructor(taskId: string) {
+    super("lease_suspended", `lease suspended: task ${taskId} is WAITING_APPROVAL — heartbeat does not extend the lease (reacquire after resume)`);
+  }
+}
+export class SlotUnavailable extends SchedulerError {
+  constructor(max: number) {
+    super("slot_unavailable", `slot unavailable: ${max} live lease(s) already held by other tasks`);
+  }
+}
 export class UnknownTask extends SchedulerError {
   constructor(taskId: string) {
     super("unknown_task", `unknown task: ${taskId}`);
@@ -79,6 +89,7 @@ export interface PreconditionCtx {
   payload: Record<string, unknown>;
   has(type: EventType): boolean;
   approval(requestId: string): ApprovalRecord | undefined;
+  /** 이 Task 를 제외한 다른 Task 들의 살아 있는 lease 수(리뷰A#1: 자기 lease 를 다시 세지 않음) */
   liveLeases(): number;
 }
 
@@ -148,14 +159,10 @@ export class Scheduler {
     if (e.type === "LeaseAcquired" && typeof e.payload.token === "number") this.tokenCounter = Math.max(this.tokenCounter, e.payload.token);
     if (e.type === "ApprovalRequested" && typeof e.payload.request_id === "string") {
       this.approvals.set(e.payload.request_id, { ...(this.approvals.get(e.payload.request_id) ?? {}), taskId: e.taskId });
-    } else if (e.type === "ApprovalDecided" && typeof e.payload.request_id === "string") {
-      const rec = this.approvals.get(e.payload.request_id) ?? {};
-      rec.outcome = e.payload.decision as ApprovalRecord["outcome"];
-      this.approvals.set(e.payload.request_id, rec);
-    } else if (e.type === "ApprovalExpired" && typeof e.payload.request_id === "string") {
-      const rec = this.approvals.get(e.payload.request_id) ?? {};
-      rec.outcome = "expired";
-      this.approvals.set(e.payload.request_id, rec);
+    } else if ((e.type === "ApprovalDecided" || e.type === "ApprovalExpired") && typeof e.payload.request_id === "string") {
+      // 리뷰A#2: 결정·만료는 ApprovalRequested 와 같은 Task 로 기록된 것만 결과로 인정한다(다른 Task 로 기록된 동일 request_id 는 무시)
+      const rec = this.approvals.get(e.payload.request_id);
+      if (rec && rec.taskId === e.taskId) rec.outcome = e.type === "ApprovalExpired" ? "expired" : (e.payload.decision as ApprovalRecord["outcome"]);
     }
     if (!e.taskId) return;
     let t = this.tasks.get(e.taskId);
@@ -220,6 +227,7 @@ export class Scheduler {
     const t = this.get(taskId);
     if (this.table.terminal.includes(t.status)) throw new InvalidTransition(t.status, "acquireLease");
     if (t.lease && !this.isExpired(t.lease.expiresAt)) throw new LeaseHeld(taskId);
+    if (this.maxSlots !== undefined && this.liveLeaseCount(taskId) >= this.maxSlots) throw new SlotUnavailable(this.maxSlots);
     const fencingToken = ++this.tokenCounter;
     const expiresAt = new Date(this.now() + this.leaseTtlMs).toISOString();
     this.store.append({ type: "LeaseAcquired", taskId, agentRunId: runId, fencingToken, payload: { run_id: runId, token: fencingToken, ttl: this.leaseTtlMs, expires_at: expiresAt } });
@@ -231,6 +239,7 @@ export class Scheduler {
     if (!t.lease || t.lease.fencingToken !== fencingToken || this.isExpired(t.lease.expiresAt)) {
       this.rejectStale(t, fencingToken);
     }
+    if (t.status === "WAITING_APPROVAL") throw new LeaseSuspended(taskId); // 리뷰A#5: 승인 대기 중 lease 는 만료되게 두고 복귀 후 재획득
     const expiresAt = new Date(this.now() + this.leaseTtlMs).toISOString();
     this.store.append({
       type: "LeaseRenewed",
@@ -253,32 +262,21 @@ export class Scheduler {
     return out;
   }
 
+  /** 모든 Task 의 현재 뷰(RPC task.list). */
+  list(): TaskView[] {
+    return [...this.tasks.keys()].map((id) => this.state(id));
+  }
+
+  /**
+   * transition() 과 같은 규칙(전이표·auth 종류·fencing·precondition)으로 판정만 하고 아무것도 기록하지 않는다(리뷰A#3).
+   * 호출자가 저널에 선행 기록(승인 요청 등)을 남기기 전에 전이 가능성을 확인하는 용도. 실패는 transition() 과 같은 오류.
+   */
+  check(taskId: string, event: TaskEvent, auth: TransitionAuth, payload: Record<string, unknown> = {}): TaskState {
+    return this.resolve(taskId, event, auth, payload, false).to;
+  }
+
   transition(taskId: string, event: TaskEvent, auth: TransitionAuth, payload: Record<string, unknown> = {}): TaskState {
-    const t = this.get(taskId);
-    const edge = nextState(this.table, t.status, event);
-    if (!edge) throw new InvalidTransition(t.status, event);
-    const expectedKind = USER_EVENTS.has(event) ? "user" : DAEMON_EVENTS.has(event) ? "daemon" : LEASE_EVENTS.has(event) ? "lease" : null;
-    if (expectedKind === null || auth.kind !== expectedKind) throw new AuthKindMismatch(event, auth.kind);
-    if (auth.kind === "lease" && (!t.lease || t.lease.fencingToken !== auth.token || this.isExpired(t.lease.expiresAt))) {
-      this.rejectStale(t, auth.token);
-    }
-    const ctx: PreconditionCtx = {
-      task: this.state(taskId),
-      event,
-      auth,
-      payload,
-      has: (type) => t.seen.has(type),
-      approval: (id) => this.approvals.get(id),
-      liveLeases: () => [...this.tasks.values()].filter((x) => x.lease && !this.isExpired(x.lease.expiresAt)).length,
-    };
-    for (const id of edge.preconditions) {
-      if (!this.checkers[id]!(ctx)) throw new PreconditionFailed(id);
-    }
-    let to: TaskState;
-    if (edge.to === "$resume") {
-      if (!t.resumeFrom) throw new PreconditionFailed("approval_decided");
-      to = t.resumeFrom;
-    } else to = edge.to;
+    const { t, to } = this.resolve(taskId, event, auth, payload, true);
 
     const body: Record<string, unknown> = { from: t.status, to, reason: event };
     for (const k of USER_PAYLOAD_KEYS) if (k in payload && k !== "evidenceIds") body[k] = payload[k];
@@ -304,6 +302,40 @@ export class Scheduler {
   }
 
   // ---------- 내부 ----------
+  /** 전이 판정 공통부. record=true 면 stale 시도를 StaleWriterRejected 로 기록한다(check 는 기록하지 않음). */
+  private resolve(taskId: string, event: TaskEvent, auth: TransitionAuth, payload: Record<string, unknown>, record: boolean): { t: TaskRecord; to: TaskState } {
+    const t = this.get(taskId);
+    const edge = nextState(this.table, t.status, event);
+    if (!edge) throw new InvalidTransition(t.status, event);
+    const expectedKind = USER_EVENTS.has(event) ? "user" : DAEMON_EVENTS.has(event) ? "daemon" : LEASE_EVENTS.has(event) ? "lease" : null;
+    if (expectedKind === null || auth.kind !== expectedKind) throw new AuthKindMismatch(event, auth.kind);
+    if (auth.kind === "lease" && (!t.lease || t.lease.fencingToken !== auth.token || this.isExpired(t.lease.expiresAt))) {
+      if (record) this.rejectStale(t, auth.token);
+      throw new StaleWriterError(auth.token, t.lease && !this.isExpired(t.lease.expiresAt) ? t.lease.fencingToken : null);
+    }
+    const ctx: PreconditionCtx = {
+      task: this.state(taskId),
+      event,
+      auth,
+      payload,
+      has: (type) => t.seen.has(type),
+      approval: (id) => this.approvals.get(id),
+      liveLeases: () => this.liveLeaseCount(taskId),
+    };
+    for (const id of edge.preconditions) {
+      if (!this.checkers[id]!(ctx)) throw new PreconditionFailed(id);
+    }
+    let to: TaskState;
+    if (edge.to === "$resume") {
+      if (!t.resumeFrom) throw new PreconditionFailed("approval_decided");
+      to = t.resumeFrom;
+    } else to = edge.to;
+    return { t, to };
+  }
+  /** except 를 제외한 Task 들의 살아 있는 lease 수 */
+  private liveLeaseCount(except?: string): number {
+    return [...this.tasks.values()].filter((x) => x.id !== except && x.lease && !this.isExpired(x.lease.expiresAt)).length;
+  }
   private get(taskId: string): TaskRecord {
     const t = this.tasks.get(taskId);
     if (!t) throw new UnknownTask(taskId);

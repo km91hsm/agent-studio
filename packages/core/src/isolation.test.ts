@@ -1,6 +1,8 @@
 /**
  * AC-P01-6 격리 경고 집행: S4 불합격 조합을 `capabilities.isolation_warning` 으로 등록하면 그 조합에서 자동 모드 활성 요청이
  * 1회 확인 대화를 거치고, 경고 배지가 투영되며, 확인 없이는 활성화되지 않는다(단위 + SQLite 투영 통합).
+ * 리뷰A#4: 조합은 공급자별(`combos.claude/codex`)로 받고 자동 모드를 켜는 공급자의 조합이 없으면 거부한다.
+ * 리뷰A#9: UserInputAnswered{confirmed} 뒤 ProjectPolicyChanged 전에 중단돼도 재기동 시 복구된다.
  */
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -10,7 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "@agent-studio/protocol";
 import type { PermissionMode } from "@agent-studio/protocol";
 import type { IsolationWarning } from "./isolation.js";
-import { comboKey, isAutoMode, loadBundledWarnings, PolicyGate, registerIsolationWarnings, warningsFor } from "./isolation.js";
+import { autoProviders, comboKey, isAutoMode, loadBundledWarnings, PolicyGate, registerIsolationWarnings, warningsFor } from "./isolation.js";
 import { MemoryEventStore } from "./journal/memory-store.js";
 import { openSqliteStore } from "./journal/sqlite-store.js";
 
@@ -22,6 +24,8 @@ const CODEX_LINUX = { provider: "codex", os: "linux", sandbox: "workspaceWrite",
 const CLAUDE_NATIVE = { provider: "claude", os: "windows", sandbox: "native", variant: "default" };
 const CODEX_NEVER: PermissionMode = { claude: "default", codex: { approvalPolicy: "never", sandbox: "workspaceWrite" } };
 const CLAUDE_AUTO: PermissionMode = { claude: "auto", codex: { approvalPolicy: "on-request", sandbox: "workspaceWrite" } };
+const BOTH_AUTO: PermissionMode = { claude: "auto", codex: { approvalPolicy: "never", sandbox: "workspaceWrite" } };
+const PLAN_ONLY: PermissionMode = { claude: "plan", codex: DEFAULT_POLICY.permissionMode.codex };
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -38,7 +42,7 @@ function setup() {
 const ofType = (store: MemoryEventStore, type: string) => store.read(1).filter((e) => e.type === type);
 
 describe("isolation warnings (AC-P01-6)", () => {
-  it("(a) 픽스처 6건 등록 → 조합별 조회, 번들 로더, unverified 유지", () => {
+  it("(a) 픽스처 6건 등록 → 조합별 조회, 번들 로더, unverified 유지, 자동 모드 공급자 집합", () => {
     const { store } = setup();
     expect(ofType(store, "WorkspaceSettingsChanged")).toHaveLength(1);
     expect(ofType(store, "WorkspaceSettingsChanged")[0]!.payload).toEqual({ capabilities: { isolation_warning: fixture() } });
@@ -54,12 +58,16 @@ describe("isolation warnings (AC-P01-6)", () => {
     expect(isAutoMode(CODEX_NEVER)).toBe(true);
     expect(isAutoMode(CLAUDE_AUTO)).toBe(true);
     expect(isAutoMode({ claude: "acceptEdits", codex: DEFAULT_POLICY.permissionMode.codex })).toBe(true);
-    expect(isAutoMode({ claude: "plan", codex: DEFAULT_POLICY.permissionMode.codex })).toBe(false);
+    expect(isAutoMode(PLAN_ONLY)).toBe(false);
+    expect(autoProviders(DEFAULT_POLICY.permissionMode)).toEqual([]);
+    expect(autoProviders(CODEX_NEVER)).toEqual(["codex"]);
+    expect(autoProviders(CLAUDE_AUTO)).toEqual(["claude"]);
+    expect(autoProviders(BOTH_AUTO)).toEqual(["claude", "codex"]);
   });
 
   it("(b) 경고 없는 조합에서 자동 모드 → applied, ProjectPolicyChanged 1건", () => {
     const { store, gate } = setup();
-    expect(gate.setPermissionMode(CODEX_NEVER, CODEX_LINUX, "user")).toEqual({ status: "applied" });
+    expect(gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_LINUX }, "user")).toEqual({ status: "applied" });
     const changed = ofType(store, "ProjectPolicyChanged");
     expect(changed).toHaveLength(1);
     expect(changed[0]!.projectId).toBe("p1");
@@ -70,7 +78,7 @@ describe("isolation warnings (AC-P01-6)", () => {
 
   it("(c) 경고 조합에서 자동 모드 → confirmation_required + UserInputRequested 1건, 배지 비활성, 정책 불변", () => {
     const { store, gate } = setup();
-    const r = gate.setPermissionMode(CODEX_NEVER, CODEX_ELEVATED, "user");
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
     expect(r.status).toBe("confirmation_required");
     if (r.status !== "confirmation_required") return;
     expect(r.warnings.map((w) => w.area).sort()).toEqual(["fs_tmp_parent", "network_loopback"]);
@@ -81,32 +89,32 @@ describe("isolation warnings (AC-P01-6)", () => {
     expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(0);
     expect(gate.policy().permissionMode).toEqual(DEFAULT_POLICY.permissionMode);
     expect(gate.badge().active).toBe(false);
-    // 비자동 모드 변경은 경고 조합에서도 확인 없이 적용
-    expect(gate.setPermissionMode({ claude: "plan", codex: DEFAULT_POLICY.permissionMode.codex }, CODEX_ELEVATED, "user")).toEqual({ status: "applied" });
+    // 비자동 모드 변경은 경고 조합에서도 확인 없이 적용(조합 불필요)
+    expect(gate.setPermissionMode(PLAN_ONLY, {}, "user")).toEqual({ status: "applied" });
   });
 
   it("(d) confirm(true) → UserInputAnswered + ProjectPolicyChanged(autoModeConfirmed), 배지 활성, 같은 조합 재설정은 applied", () => {
     const { store, gate } = setup();
-    const r = gate.setPermissionMode(CODEX_NEVER, CODEX_ELEVATED, "user");
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
     if (r.status !== "confirmation_required") throw new Error("expected confirmation");
     expect(gate.confirm(r.requestId, true)).toEqual({ status: "applied" });
     expect(ofType(store, "UserInputAnswered")[0]!.payload).toMatchObject({ request_id: r.requestId, answer: "confirmed" });
     const changed = ofType(store, "ProjectPolicyChanged");
     expect(changed).toHaveLength(1);
-    expect(changed[0]!.payload).toMatchObject({ after: { permissionMode: CODEX_NEVER, autoModeConfirmed: { combo: "codex/windows/workspaceWrite/elevated" } } });
+    expect(changed[0]!.payload).toMatchObject({ after: { permissionMode: CODEX_NEVER, autoModeConfirmed: { combo: "codex/windows/workspaceWrite/elevated" } }, confirmed_by_request: r.requestId });
     expect(gate.badge()).toMatchObject({ active: true, combo: "codex/windows/workspaceWrite/elevated" });
     expect(gate.badge().warnings.map((w) => w.area).sort()).toEqual(["fs_tmp_parent", "network_loopback"]);
-    // 같은 조합에서 다시 자동 모드(다른 값)로 바꿔도 재확인 없음
-    expect(gate.setPermissionMode({ ...CODEX_NEVER, claude: "auto" }, CODEX_ELEVATED, "user")).toEqual({ status: "applied" });
+    // 같은 조합에서 codex 자동 모드를 유지한 채 claude 값만 바꿔도 재확인 없음
+    expect(gate.setPermissionMode({ ...CODEX_NEVER, claude: "plan" }, { codex: CODEX_ELEVATED }, "user")).toEqual({ status: "applied" });
     expect(ofType(store, "UserInputRequested")).toHaveLength(1);
-    // 다른 경고 조합은 다시 확인 필요
-    expect(gate.setPermissionMode(CODEX_NEVER, CLAUDE_NATIVE, "user").status).toBe("confirmation_required");
+    // 다른 공급자의 경고 조합은 다시 확인 필요
+    expect(gate.setPermissionMode(CLAUDE_AUTO, { claude: CLAUDE_NATIVE }, "user").status).toBe("confirmation_required");
     expect(() => gate.confirm(r.requestId, true)).toThrow(/not pending/);
   });
 
   it("(e) confirm(false) → rejected, UserInputAnswered 만 기록, 정책 불변", () => {
     const { store, gate } = setup();
-    const r = gate.setPermissionMode(CODEX_NEVER, CODEX_ELEVATED, "user");
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
     if (r.status !== "confirmation_required") throw new Error("expected confirmation");
     expect(gate.confirm(r.requestId, false)).toEqual({ status: "rejected" });
     expect(ofType(store, "UserInputAnswered")[0]!.payload).toMatchObject({ request_id: r.requestId, answer: "rejected" });
@@ -123,9 +131,9 @@ describe("isolation warnings (AC-P01-6)", () => {
     store.append({ type: "ProjectRegistered", projectId: "p1", payload: { id: "p1", path: "D:/tmp/p1" } });
     registerIsolationWarnings(store, fixture());
     const gate = new PolicyGate(store, "p1");
-    expect(gate.setPermissionMode(CODEX_NEVER, CODEX_ELEVATED, "user").status).toBe("confirmation_required");
-    expect(gate.setPermissionMode(CLAUDE_AUTO, CLAUDE_NATIVE, "user").status).toBe("confirmation_required");
-    const r = gate.setPermissionMode(CODEX_NEVER, CODEX_ELEVATED, "user");
+    expect(gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user").status).toBe("confirmation_required");
+    expect(gate.setPermissionMode(CLAUDE_AUTO, { claude: CLAUDE_NATIVE }, "user").status).toBe("confirmation_required");
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
     if (r.status !== "confirmation_required") throw new Error("expected confirmation");
     gate.confirm(r.requestId, true);
 
@@ -147,7 +155,54 @@ describe("isolation warnings (AC-P01-6)", () => {
     // 재기동: 새 Gate 가 저널에서 확인 상태를 복원한다
     const gate2 = new PolicyGate(store, "p1");
     expect(gate2.badge()).toMatchObject({ active: true, combo: "codex/windows/workspaceWrite/elevated" });
-    expect(gate2.setPermissionMode(CLAUDE_AUTO, CODEX_ELEVATED, "user")).toEqual({ status: "applied" });
+    expect(gate2.setPermissionMode({ ...CODEX_NEVER, claude: "plan" }, { codex: CODEX_ELEVATED }, "user")).toEqual({ status: "applied" });
     store.close();
+  });
+
+  it("(g) 리뷰A#4 자동 모드를 켜는 공급자의 조합이 없거나 공급자가 다르면 거부(ProjectPolicyChanged 0건)", () => {
+    const { store, gate } = setup();
+    expect(() => gate.setPermissionMode(CLAUDE_AUTO, { codex: CODEX_LINUX }, "user")).toThrow(/combo.*claude/i);
+    expect(() => gate.setPermissionMode(CLAUDE_AUTO, { claude: CODEX_LINUX }, "user")).toThrow(/provider/i);
+    expect(() => gate.setPermissionMode(BOTH_AUTO, { claude: CLAUDE_NATIVE }, "user")).toThrow(/combo.*codex/i);
+    expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(0);
+    expect(ofType(store, "UserInputRequested")).toHaveLength(0);
+    // 두 공급자 모두 자동: 경고는 두 조합의 합집합, 확인 1회로 두 조합이 함께 기록된다
+    const r = gate.setPermissionMode(BOTH_AUTO, { claude: CLAUDE_NATIVE, codex: CODEX_ELEVATED }, "user");
+    if (r.status !== "confirmation_required") throw new Error("expected confirmation");
+    expect(r.warnings.map((w) => w.area).sort()).toEqual(["fs_outside", "fs_tmp_parent", "network_loopback", "network_loopback"]);
+    expect(gate.confirm(r.requestId, true)).toEqual({ status: "applied" });
+    const combo = gate.policy().autoModeConfirmed!.combo;
+    expect(combo.split(";").sort()).toEqual(["claude/windows/native/default", "codex/windows/workspaceWrite/elevated"]);
+    expect(gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user")).toEqual({ status: "applied" });
+    expect(gate.setPermissionMode(CLAUDE_AUTO, { claude: CLAUDE_NATIVE }, "user")).toEqual({ status: "applied" });
+    expect(gate.setPermissionMode(CLAUDE_AUTO, { claude: { ...CLAUDE_NATIVE, os: "linux" } }, "user")).toEqual({ status: "applied" }); // 경고 없는 조합
+    expect(gate.badge().combo).toBe("claude/linux/native/default");
+  });
+
+  it("(h) 리뷰A#9 UserInputAnswered{confirmed} 뒤 정책 기록 전에 중단되면 재기동 recover() 가 적용을 완성한다(재확인 없이)", () => {
+    const { store, gate } = setup();
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    if (r.status !== "confirmation_required") throw new Error("expected confirmation");
+    // 크래시 모사: 답변만 저널에 남고 ProjectPolicyChanged 가 없다
+    store.append({ type: "UserInputAnswered", projectId: "p1", correlationId: r.requestId, payload: { request_id: r.requestId, kind: "isolation_confirm", answer: "confirmed" } });
+    expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(0);
+    const gate2 = new PolicyGate(store, "p1");
+    expect(gate2.recover()).toEqual([r.requestId]);
+    expect(ofType(store, "UserInputAnswered")).toHaveLength(1);
+    const changed = ofType(store, "ProjectPolicyChanged");
+    expect(changed).toHaveLength(1);
+    expect(changed[0]!.payload).toMatchObject({ after: { permissionMode: CODEX_NEVER, autoModeConfirmed: { combo: "codex/windows/workspaceWrite/elevated" } }, confirmed_by_request: r.requestId });
+    expect(gate2.recover()).toEqual([]);
+    // 같은 경로를 confirm() 재호출로도 완성할 수 있다(답변 중복 기록 없음)
+    const gate3 = new PolicyGate(new MemoryEventStore(), "p1");
+    void gate3;
+    const { store: s2, gate: g2 } = setup();
+    const r2 = g2.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    if (r2.status !== "confirmation_required") throw new Error("expected confirmation");
+    s2.append({ type: "UserInputAnswered", projectId: "p1", correlationId: r2.requestId, payload: { request_id: r2.requestId, kind: "isolation_confirm", answer: "confirmed" } });
+    expect(g2.confirm(r2.requestId, true)).toEqual({ status: "applied" });
+    expect(ofType(s2, "UserInputAnswered")).toHaveLength(1);
+    expect(ofType(s2, "ProjectPolicyChanged")).toHaveLength(1);
+    expect(() => g2.confirm(r2.requestId, true)).toThrow(/not pending/);
   });
 });

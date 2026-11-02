@@ -7,7 +7,7 @@ import { DEFAULT_POLICY } from "@agent-studio/protocol";
 import { DefaultPolicyBroker } from "./approval-broker.js";
 import { ApprovalCoordinator } from "./approval-coordinator.js";
 import { MemoryEventStore } from "./journal/memory-store.js";
-import { Scheduler } from "./scheduler.js";
+import { Scheduler, StaleWriterError } from "./scheduler.js";
 
 const clock = (start = 1_762_041_600_000) => {
   let t = start;
@@ -94,5 +94,51 @@ describe("ApprovalCoordinator", () => {
     store.append({ type: "ApprovalDecided", taskId: other, correlationId: r.requestId, payload: { request_id: r.requestId, decision: "accept", by: "user", scope: "once", decided_at: "t" } });
     expect(() => scheduler.transition(other, "approved", { kind: "daemon", requestId: r.requestId })).toThrow();
     expect(scheduler.state(other).status).toBe("QUEUED");
+  });
+
+  it("(6) 리뷰A#3 옛 토큰으로 request 하면 ApprovalRequested 를 기록하지 않는다(보류 승인과 상태가 갈라지지 않음)", () => {
+    const { store, scheduler, broker, coord, id, token } = setup();
+    const n = store.lastSeq();
+    expect(() => coord.request({ taskId: id, runId: "run-1", kind: "approval", category: "exec", request: {} }, token + 1)).toThrow(StaleWriterError);
+    expect(broker.pending()).toHaveLength(0);
+    expect(store.lastSeq()).toBe(n);
+    expect(scheduler.state(id).status).toBe("IMPLEMENTING");
+  });
+
+  it("(7) 리뷰A#6 WAITING_APPROVAL 에서 cancel → 보류 승인은 decline 으로 해소, 이후 accept 는 already_decided", () => {
+    const { store, scheduler, broker, coord, id, token } = setup();
+    const r = coord.request({ taskId: id, runId: "run-1", kind: "approval", category: "exec", request: {} }, token);
+    expect(scheduler.transition(id, "cancel", { kind: "user" })).toBe("CANCELLED");
+    expect(broker.pending()).toHaveLength(0);
+    const decided = store.read(1).filter((e) => e.type === "ApprovalDecided");
+    expect(decided).toHaveLength(1);
+    expect(decided[0]!.payload).toMatchObject({ request_id: r.requestId, decision: "decline", by: "user" });
+    expect(() => coord.decide(r.requestId, "accept", "user")).toThrow(/already_decided/);
+    expect(scheduler.state(id).status).toBe("CANCELLED");
+  });
+
+  it("(8) 리뷰A#3 decide 는 Task 가 그 요청으로 대기 중일 때만 결정을 기록한다", () => {
+    const { store, scheduler, broker, coord, id } = setup();
+    const rid = broker.request({ taskId: id, runId: "run-1", kind: "approval", category: "exec", request: {} }); // Coordinator 를 거치지 않은 보류 요청
+    const n = store.lastSeq();
+    expect(() => coord.decide(rid, "accept", "user")).toThrow(/not pending/i);
+    expect(store.lastSeq()).toBe(n);
+    expect(broker.pending().map((p) => p.requestId)).toEqual([rid]);
+    expect(scheduler.state(id).status).toBe("IMPLEMENTING");
+  });
+
+  it("(9) 리뷰A#7 git_conflict·recovery_review·compare_blocked 도 request(…, event) 로 대기·결정·복귀한다", () => {
+    const { store, scheduler, coord, id, token } = setup();
+    const r = coord.request({ taskId: id, runId: "run-1", kind: "user_input", category: "project_trust", request: { conflict: "a.ts" } }, token, "git_conflict");
+    expect(r.verdict).toBe("ASK");
+    expect(scheduler.state(id)).toMatchObject({ status: "WAITING_APPROVAL", pendingRequestId: r.requestId, resumeFrom: "IMPLEMENTING" });
+    const last = store.read(1).filter((e) => e.type === "TaskTransition").pop()!;
+    expect(last.payload).toMatchObject({ to: "WAITING_APPROVAL", reason: "git_conflict", request_id: r.requestId });
+    coord.decide(r.requestId, "accept", "user");
+    expect(scheduler.state(id).status).toBe("IMPLEMENTING");
+    const r2 = coord.request({ taskId: id, runId: "run-1", kind: "user_input", category: "project_trust", request: {} }, token, "compare_blocked");
+    coord.decide(r2.requestId, "decline", "user");
+    expect(scheduler.state(id).status).toBe("CANCELLED");
+    expect(() => coord.request({ taskId: id, runId: "run-1", kind: "user_input", category: "project_trust", request: {} }, token, "recovery_review")).toThrow();
   });
 });

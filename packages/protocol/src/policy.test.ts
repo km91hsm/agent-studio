@@ -53,5 +53,11 @@ describe("policy schema", () => {
     expect(evaluateRule(rule, { readOnlyBrowse: true, trustedProject: true })).toBe("AUTO");
     expect(evaluateRule(DEFAULT_POLICY.rules.fs_write, { pathOutsideWorktree: true })).toBe("DENY");
     expect(evaluateRule(DEFAULT_POLICY.rules.fs_write, { pathOutsideWorktree: false })).toBe("AUTO");
+    // 리뷰A#8: SECURITY §2 원격 Git 행 "fetch ASK"
+    expect(evaluateRule(DEFAULT_POLICY.rules.git_remote, { gitOperation: "fetch" })).toBe("ASK");
+    expect(evaluateRule(DEFAULT_POLICY.rules.git_remote, { gitOperation: "push" })).toBe("DENY");
+    expect(evaluateRule(DEFAULT_POLICY.rules.git_remote, { gitOperation: "force_push" })).toBe("DENY");
+    expect(validatePolicy({ ...DEFAULT_POLICY, rules: { ...DEFAULT_POLICY.rules, git_remote: { default: "DENY", scope: "once", exceptions: [{ when: { gitOperation: "fetch" }, verdict: "ASK" }] } } })).toEqual([]);
+    expect(validatePolicy({ ...DEFAULT_POLICY, rules: { ...DEFAULT_POLICY.rules, git_remote: { default: "DENY", scope: "once", exceptions: [{ when: { gitOperation: "clone" }, verdict: "ASK" }] } } }).join("\n")).toMatch(/gitOperation/);
   });
 });
