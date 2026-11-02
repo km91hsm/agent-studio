@@ -1,0 +1,11 @@
+{
+  "name": "@agent-studio/shell",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Electron shell: window, tray, daemon attach, narrow IPC relay",
+  "main": "dist/main.js",
+  "dependencies": {
+    "@agent-studio/core": "*",
+    "@agent-studio/protocol": "*"
+  }
+}

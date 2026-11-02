@@ -1,0 +1,10 @@
+{
+  "name": "@agent-studio/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent Studio contracts: journal event types, task transitions, gateway signature, RPC, policy schema (single source)",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

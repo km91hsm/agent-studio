@@ -11,6 +11,6 @@
     "types": ["node"],
     "lib": ["ES2023"]
   },
-  "include": ["spikes/**/*.ts", "vitest.config.ts"],
-  "exclude": ["node_modules", "spikes/fixtures/**", "spikes/s6-installer/**"]
+  "include": ["spikes/**/*.ts", "packages/**/*.ts", "apps/daemon/**/*.ts", "apps/shell/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "**/dist/**", "spikes/fixtures/**", "spikes/s6-installer/**", "apps/renderer/**"]
 }

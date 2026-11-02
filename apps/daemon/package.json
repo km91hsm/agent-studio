@@ -1,0 +1,11 @@
+{
+  "name": "@agent-studio/daemon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Orchestrator daemon entry (detached Node process)",
+  "dependencies": {
+    "@agent-studio/core": "*",
+    "@agent-studio/protocol": "*"
+  }
+}

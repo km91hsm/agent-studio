@@ -1,0 +1,10 @@
+{
+  "name": "@agent-studio/renderer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "React renderer: external store subscribed to journal seq batches via preload IPC",
+  "dependencies": {
+    "@agent-studio/protocol": "*"
+  }
+}

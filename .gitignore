@@ -22,3 +22,7 @@ spikes/**/.tmp/
 # S6 installer spike artifacts
 spikes/s6-installer/runtime/
 spikes/s6-installer/dist/
+
+# P01 renderer build / shell build
+apps/renderer/dist/
+apps/shell/dist/
