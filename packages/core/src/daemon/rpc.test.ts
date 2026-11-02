@@ -150,7 +150,7 @@ describe("rpc (b) 메서드·스키마·사용자 전이", () => {
     const e6 = await client.call("task.cancel", { taskId }).catch((e: unknown) => e);
     expect((e6 as RpcCallError).code).toBe(-32004);
     const caps = await client.call<{ isolationWarnings: unknown[]; tokenRef: string }>("capabilities.get");
-    expect(caps.isolationWarnings).toHaveLength(6);
+    expect(caps.isolationWarnings).toHaveLength(hostOs() === "windows" ? 6 : 12); // boot() 가 호스트 OS 사본을 더한다(windows 가 아니면 2배)
     expect(await client.call("policy.get")).toMatchObject({ policy: { permissionMode: DEFAULT_POLICY.permissionMode }, badge: { active: false } });
   });
 });
