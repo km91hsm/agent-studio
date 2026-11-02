@@ -12,7 +12,7 @@ import { DEFAULT_POLICY } from "@agent-studio/protocol";
 import type { JournalEvent } from "@agent-studio/protocol";
 import { DefaultPolicyBroker } from "../approval-broker.js";
 import { ApprovalCoordinator } from "../approval-coordinator.js";
-import { loadBundledWarnings, PolicyGate, registerIsolationWarnings } from "../isolation.js";
+import { hostOs, loadBundledWarnings, PolicyGate, registerIsolationWarnings, type IsolationWarning } from "../isolation.js";
 import { MemoryEventStore } from "../journal/memory-store.js";
 import { Scheduler } from "../scheduler.js";
 import { PROTOCOL_VERSION, proof } from "./protocol.js";
@@ -38,7 +38,9 @@ async function boot(opts: { onShutdown?: () => void; handshakeTimeoutMs?: number
   const now = () => clock.t;
   const scheduler = new Scheduler(store, { now });
   store.append({ type: "ProjectRegistered", projectId: "p1", payload: { id: "p1", path: stateDir } });
-  registerIsolationWarnings(store, loadBundledWarnings());
+  // 번들 경고(S4, windows 만)에 호스트 OS 사본을 더한다 — policy.set 은 combos.os 를 호스트와 대조하므로(최종리뷰I2) ubuntu CI 에서도 경고 조합을 만들 수 있게
+  const warnings: IsolationWarning[] = loadBundledWarnings().flatMap((w) => (w.os === hostOs() ? [w] : [w, { ...w, os: hostOs() }]));
+  registerIsolationWarnings(store, warnings);
   const gate = new PolicyGate(store, "p1", now);
   const broker = new DefaultPolicyBroker(store, () => gate.policy(), { now }); // 리뷰B#2: 현재 정책을 매번 조회
   const coordinator = new ApprovalCoordinator(scheduler, broker, store);
@@ -238,7 +240,7 @@ describe("rpc (e) 오류 코드", () => {
     expect(b.gate.policy().permissionMode.claude).toBe("plan");
     // 경고 조합에서 자동 모드 → confirmation_required → user_input.answer 로 확인
     const auto = { ...DEFAULT_POLICY, permissionMode: { claude: "default" as const, codex: { approvalPolicy: "never" as const, sandbox: "workspaceWrite" as const } } };
-    const r = await client.call<{ status: string; requestId: string; warnings: unknown[] }>("policy.set", { projectId: "p1", policy: auto, combos: { codex: { provider: "codex", os: "windows", sandbox: "workspaceWrite", variant: "elevated" } } });
+    const r = await client.call<{ status: string; requestId: string; warnings: unknown[] }>("policy.set", { projectId: "p1", policy: auto, combos: { codex: { provider: "codex", os: hostOs(), sandbox: "workspaceWrite", variant: "elevated" } } });
     expect(r.status).toBe("confirmation_required");
     expect(r.warnings).toHaveLength(2);
     const e5 = await client.call("user_input.answer", { requestId: r.requestId, answers: { answer: "maybe" } }).catch((e: unknown) => e);
@@ -448,14 +450,14 @@ describe("rpc (m) 최종리뷰I2 combos 호스트 OS 대조", () => {
   it("combos[*].os 가 데몬 호스트 OS 와 다르면 -32602 이고 정책·저널은 불변(렌더러가 경고 없는 조합을 자칭할 수 없다)", async () => {
     const b = await boot();
     const { client } = await connect(b.stateDir);
-    const hostOs = process.platform === "win32" ? "windows" : process.platform === "darwin" ? "macos" : "linux";
-    const foreign = hostOs === "linux" ? "windows" : "linux";
+    const host = hostOs();
+    const foreign = host === "linux" ? "windows" : "linux";
     const auto = { ...DEFAULT_POLICY, permissionMode: { claude: "default", codex: { approvalPolicy: "never", sandbox: "workspaceWrite" } } };
     const before = b.store.lastSeq();
     const e = await client.call("policy.set", { projectId: "p1", policy: auto, combos: { codex: { provider: "codex", os: foreign, sandbox: "workspaceWrite", variant: "elevated" } } }).catch((err: unknown) => err);
     expect(e).toBeInstanceOf(RpcCallError);
     expect((e as RpcCallError).code).toBe(-32602);
-    expect((e as RpcCallError).message).toMatch(new RegExp(`${foreign}.*${hostOs}|${hostOs}.*${foreign}`));
+    expect((e as RpcCallError).message).toMatch(new RegExp(`${foreign}.*${host}|${host}.*${foreign}`));
     expect(b.gate.policy().permissionMode).toEqual(DEFAULT_POLICY.permissionMode);
     expect(b.store.lastSeq()).toBe(before);
   });
