@@ -2,3 +2,5 @@
 export const PROTOCOL_PACKAGE = "@agent-studio/protocol";
 
 export * from "./gateway.js";
+export * from "./events.js";
+export * from "./ulid.js";
