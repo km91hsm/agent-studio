@@ -1,6 +1,6 @@
 /**
  * S7 Step 1 — Codex app-server 스키마 고정 (MASTER Phase 00 Task S7, AC-P00-6)
- * - 산출물 `spikes/s7-schema/codex-schema/`는 `diff.sh --update`로 생성·커밋한다(PROVENANCE.md에 버전·sha256·archive 대조 기록).
+ * - 산출물은 P01 T10 에서 `packages/protocol/codex-schema/`로 이동했다(`diff.sh --update`로 생성·커밋, PROVENANCE.md에 버전·sha256·archive 대조 기록).
  * - `diff.sh`는 재생성 후 커밋본과 `diff -r`로 비교해 변경 시 비0으로 종료한다(P01 T10 CI 입력).
  * CI(코덱스 없음): 커밋본 무결성만 검사. LIVE: 재생성 diff 0 / 변조본 비0.
  */
@@ -15,8 +15,8 @@ import { fileURLToPath } from "node:url";
 const LIVE = !!process.env.AGENT_STUDIO_LIVE;
 const ROOT = fileURLToPath(new URL("./", import.meta.url));
 const REPO = fileURLToPath(new URL("../../", import.meta.url));
-const SCHEMA_DIR = join(ROOT, "codex-schema");
-const DIFF_SH = join(ROOT, "diff.sh");
+const SCHEMA_DIR = join(REPO, "packages/protocol/codex-schema"); // P01 T10 이동 위치
+const DIFF_SH = join(SCHEMA_DIR, "diff.sh");
 /** archive/evidence/codex_schema_0.166.0/PROVENANCE.md 의 v2 번들 sha256(2026-11-01 생성) */
 const ARCHIVE_V2_SHA = "f72bb03a3f519cd19b37a030b42453128ff5b88abaad8c1264cf1ca197dbbed0";
 
@@ -26,7 +26,7 @@ const runDiff = (env: Record<string, string> = {}) => spawnSync("bash", [DIFF_SH
 describe("S7 schema bundle (CI)", () => {
   it("커밋된 스키마 번들이 존재하고 JSON으로 파싱되며 PROVENANCE.md의 sha256과 일치한다", () => {
     expect(existsSync(SCHEMA_DIR)).toBe(true);
-    const files = readdirSync(SCHEMA_DIR).filter((f) => f.endsWith(".json"));
+    const files = readdirSync(SCHEMA_DIR).filter((f) => f.endsWith(".json")); // diff.sh·PROVENANCE.md 는 번들 아님
     expect(files.length).toBeGreaterThan(0);
     const provenance = readFileSync(join(SCHEMA_DIR, "PROVENANCE.md"), "utf8");
     for (const f of files) {

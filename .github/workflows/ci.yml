@@ -19,3 +19,32 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+  codex-schema-diff:
+    # P01 T10: codex app-server 스키마 재생성 diff. codex npm 패키지를 받을 수 없으면 성공으로 위장하지 않고 UNVERIFIED 로 요약한다.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: schema diff (codex-cli 0.166.0 via npx)
+        shell: bash
+        run: |
+          set -uo pipefail
+          if VER=$(npx -y @openai/codex@0.166.0 --version 2>/dev/null); then
+            echo "codex: $VER"
+            mkdir -p "$RUNNER_TEMP/codexbin"
+            printf '#!/usr/bin/env bash\nexec npx -y @openai/codex@0.166.0 "$@"\n' > "$RUNNER_TEMP/codexbin/codex"
+            chmod +x "$RUNNER_TEMP/codexbin/codex"
+            if PATH="$RUNNER_TEMP/codexbin:$PATH" npm run schema:diff; then
+              echo "schema-diff: VERIFIED ($VER)" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "schema-diff: FAILED ($VER) — bundle differs from regenerated schema" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          else
+            echo "::warning::codex npm 0.166.0 unavailable — schema diff UNVERIFIED"
+            echo "schema-diff: UNVERIFIED (codex npm package unavailable in CI)" >> "$GITHUB_STEP_SUMMARY"
+          fi

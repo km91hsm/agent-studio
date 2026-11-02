@@ -3,7 +3,7 @@
 - 명령: `codex app-server generate-json-schema --out <tmp> --experimental -c features.memories=false` → 이 폴더로 복사
 - 버전: codex-cli 0.166.0
 - 생성 시각: 2026-11-01T21:10:45Z
-- 재검증: `bash spikes/s7-schema/diff.sh` (재생성 결과가 다르면 비0 종료) / 갱신: `--update`(정본 디렉터리만, 덮어쓰기 전 diff 출력)
+- 재검증: `npm run schema:diff` (= `bash packages/protocol/codex-schema/diff.sh`; 재생성 결과가 다르면 비0 종료) / 갱신: `--update`(정본 디렉터리만, 덮어쓰기 전 diff 출력)
 
 | 파일 | bytes | sha256 |
 |---|---|---|
