@@ -112,6 +112,12 @@ async function start(): Promise<void> {
     subs.set(sender.id, off);
     return true;
   });
+  ipcMain.handle("events.unsubscribe", (ev) => {
+    if (!validateSender(senderOf(ev), winRef)) throw new Error("ipc rejected: sender is not the app window's top frame");
+    subs.get(ev.sender.id)?.();
+    subs.delete(ev.sender.id);
+    return true;
+  });
   wc.on("destroyed", () => subs.get(wc.id)?.());
 
   // 4) 트레이

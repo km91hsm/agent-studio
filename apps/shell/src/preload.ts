@@ -1,6 +1,6 @@
 /**
  * preload(P01 T6, sandbox:true + contextIsolation:true). `window.agentStudio = { events.subscribe, rpc.read, rpc.write }` 만 노출한다.
- * 채널은 `events.subscribe` / `events.batch` / `rpc.read` / `rpc.write` 넷뿐이고 토큰·포트·경로는 렌더러로 가지 않는다(SECURITY_MODEL §7).
+ * 채널은 `events.subscribe` / `events.unsubscribe` / `events.batch` / `rpc.read` / `rpc.write` 다섯뿐이고 토큰·포트·경로는 렌더러로 가지 않는다(SECURITY_MODEL §7).
  * renderer 측 타입은 `apps/renderer/src/agent-studio.d.ts`.
  */
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
@@ -15,7 +15,10 @@ const api = {
       };
       ipcRenderer.on("events.batch", listener);
       void ipcRenderer.invoke("events.subscribe", Number(fromSeq));
-      return () => ipcRenderer.removeListener("events.batch", listener);
+      return () => {
+        ipcRenderer.removeListener("events.batch", listener);
+        void ipcRenderer.invoke("events.unsubscribe"); // main 의 릴레이 구독도 끊는다(리뷰C#5)
+      };
     },
   },
   rpc: {

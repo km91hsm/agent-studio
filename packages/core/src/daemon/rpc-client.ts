@@ -205,6 +205,7 @@ export class DaemonClient {
   private async autoReconnect(): Promise<void> {
     for (let attempt = 1; attempt <= AUTO_RECONNECT_ATTEMPTS; attempt++) {
       if (this.closedByUser) return;
+      if (this.connected) return; // 수동 reconnect() 가 이미 성공 — 정상 소켓을 끊지 않는다(리뷰C#4)
       try {
         await this.reconnect();
         return;
@@ -212,7 +213,7 @@ export class DaemonClient {
         if (attempt < AUTO_RECONNECT_ATTEMPTS) await new Promise((r) => setTimeout(r, AUTO_RECONNECT_DELAY_MS));
       }
     }
-    if (!this.closedByUser) this.opts.onDisconnect?.();
+    if (!this.closedByUser && !this.connected) this.opts.onDisconnect?.();
   }
 
   call<T = unknown>(method: RpcMethod | string, params?: unknown): Promise<T> {

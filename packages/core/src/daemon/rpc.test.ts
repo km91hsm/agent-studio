@@ -17,7 +17,7 @@ import { MemoryEventStore } from "../journal/memory-store.js";
 import { Scheduler } from "../scheduler.js";
 import { PROTOCOL_VERSION, proof } from "./protocol.js";
 import { DaemonClient, RpcCallError } from "./rpc-client.js";
-import { removeLock } from "./lock.js";
+import { removeLock, writeLock } from "./lock.js";
 import { startRpcServer, type RpcServer } from "./rpc-server.js";
 
 const TOKEN = "test-token-0123456789";
@@ -394,4 +394,36 @@ describe("rpc (j) 리뷰B 재구독 복구", () => {
     expect(received.length).toBeLessThan(b.store.lastSeq());
     await expect(client.reconnect()).rejects.toThrow(/lock/);
   });
+
+describe("rpc (k) 리뷰C#4 자동 재접속 vs 수동 reconnect", () => {
+  it("자동 재시도 대기 중 수동 reconnect() 가 성공하면 남은 자동 시도는 정상 소켓을 끊지 않는다(welcome 동일·onDisconnect 0)", async () => {
+    const b = await boot();
+    let disconnects = 0;
+    const { client, received } = await connect(b.stateDir, { onDisconnect: () => void disconnects++ });
+    await until(() => client.lastSeq === b.store.lastSeq());
+    removeLock(b.stateDir); // 자동 재접속 1차는 실패한다
+    let skipped = false;
+    b.server.hooks.mutateBatch = (evs) => {
+      if (!skipped && evs.length > 1) {
+        skipped = true;
+        return [evs[0]!, ...evs.slice(2)];
+      }
+      return evs;
+    };
+    for (let i = 0; i < 3; i++) b.scheduler.submit({ title: `t${i}`, kind: "impl" });
+    await until(() => client.gaps === 1 && !client.connected);
+    writeLock(b.stateDir, b.server.lock); // 락 복구 → 수동 재접속(자동 2차 시도 전에)
+    await client.reconnect();
+    expect(client.connected).toBe(true);
+    const welcome = client.welcome;
+    await new Promise((r) => setTimeout(r, 900)); // 자동 재시도 창(200ms × 2)이 지나간다
+    expect(client.connected).toBe(true);
+    expect(client.welcome).toBe(welcome);
+    expect(disconnects).toBe(0);
+    for (let i = 0; i < 2; i++) b.scheduler.submit({ title: `u${i}`, kind: "impl" });
+    const N = b.store.lastSeq();
+    await until(() => received.length >= N);
+    expect(received).toEqual(range(N));
+  });
+});
 });

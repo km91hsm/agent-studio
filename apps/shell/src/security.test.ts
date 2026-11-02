@@ -74,6 +74,11 @@ describe("security snapshot (AC-P01-4)", () => {
     expect(/\bport\b/i.test(src)).toBe(false);
     expect(src.includes("127.0.0.1")).toBe(false);
     expect(/require\(/.test(src)).toBe(false);
+    // IPC 채널 집합(리뷰C#5: 구독 해지가 main 까지 전달돼야 하므로 events.unsubscribe 포함)
+    const preloadChannels = [...new Set([...src.matchAll(/ipcRenderer\.(?:invoke|on|removeListener)\("([^"]+)"/g)].map((m) => m[1]))].sort();
+    expect(preloadChannels).toEqual(["events.batch", "events.subscribe", "events.unsubscribe", "rpc.read", "rpc.write"]);
+    const mainChannels = [...new Set([...read("./main.ts").matchAll(/ipcMain\.handle\("([^"]+)"/g)].map((m) => m[1]))].sort();
+    expect(mainChannels).toEqual(["events.subscribe", "events.unsubscribe", "rpc.read", "rpc.write"]);
   });
 
   it("(e) main.ts·security.ts 에 bypassCSP 활성·unsafe-eval·nodeIntegration:true 가 없고 app 스킴은 standard+secure", () => {

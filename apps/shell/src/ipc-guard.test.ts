@@ -29,6 +29,9 @@ describe("method classification", () => {
     expect(isWriteMethod("daemon.shutdown")).toBe(false);
     expect(isReadMethod("task.transition")).toBe(false);
     expect(isWriteMethod("task.transition")).toBe(false);
+    // 리뷰C#1: events.subscribe 는 데몬 연결(Shell main) 범위의 메서드 — 렌더러가 호출하면 Shell 의 구독을 교체하므로 비노출
+    expect(isReadMethod("events.subscribe")).toBe(false);
+    expect(isWriteMethod("events.subscribe")).toBe(false);
   });
   it("validateParams 는 Task 9 스키마와 같은 판정", () => {
     expect(validateParams("task.submit", { title: "x", kind: "impl" })).toEqual([]);
@@ -72,6 +75,25 @@ describe("createIpcHandlers (가짜 DaemonClient)", () => {
     await expect(handlers.read(good, "task.submit", { title: "x", kind: "impl" })).rejects.toThrow(/method/i); // write 를 read 채널로
     await expect(handlers.write(good, "daemon.status", undefined)).rejects.toThrow(/method/i); // read 를 write 채널로
     expect(calls).toHaveLength(0);
+  });
+  it("리뷰C#1 events.subscribe 를 read 채널로 → 거부, 호출 0회", async () => {
+    const { calls, handlers } = fake();
+    await expect(handlers.read(good, "events.subscribe", { fromSeq: 999_999 })).rejects.toThrow(/method/i);
+    expect(calls).toHaveLength(0);
+  });
+  it("리뷰C#2 렌더러로 가는 응답에서 tokenRef·nonce 는 제거된다(daemon.status, capabilities.get)", async () => {
+    const calls: string[] = [];
+    const daemon = {
+      call: async (method: string) => {
+        calls.push(method);
+        if (method === "daemon.status") return { pid: 1, seq: 3, protocolVersion: 1, tokenRef: "file:D:/state/token", nonce: "abc", startedAt: "t", connections: 1 };
+        return { isolationWarnings: [], tokenRef: "keyring:agent-studio/daemon-token", protocolVersion: 1 };
+      },
+    };
+    const handlers = createIpcHandlers(daemon, win);
+    expect(await handlers.read(good, "daemon.status", undefined)).toEqual({ pid: 1, seq: 3, protocolVersion: 1, startedAt: "t", connections: 1 });
+    expect(await handlers.read(good, "capabilities.get", undefined)).toEqual({ isolationWarnings: [], protocolVersion: 1 });
+    expect(calls).toEqual(["daemon.status", "capabilities.get"]);
   });
   it("스키마 위반 → 거부, 호출 0회", async () => {
     const { calls, handlers } = fake();

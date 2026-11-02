@@ -219,4 +219,30 @@ describe("isolation warnings (AC-P01-6)", () => {
     expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(1);
     expect(gate2.policy().permissionMode).toEqual(PLAN_ONLY);
   });
+
+  it("(j) 리뷰C#3 확인 답변이 둘 이상 미적용이면 recover() 는 마지막 답변의 정책을 적용하고 확인 조합은 모두 합친다(정상 경로와 같은 결과)", () => {
+    const { store, gate } = setup();
+    const r1 = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    const r2 = gate.setPermissionMode(CLAUDE_AUTO, { claude: CLAUDE_NATIVE }, "user");
+    if (r1.status !== "confirmation_required" || r2.status !== "confirmation_required") throw new Error("expected confirmations");
+    for (const r of [r1, r2]) store.append({ type: "UserInputAnswered", projectId: "p1", correlationId: r.requestId, payload: { request_id: r.requestId, kind: "isolation_confirm", answer: "confirmed" } });
+    expect(ofType(store, "ProjectPolicyChanged")).toHaveLength(0);
+    const gate2 = new PolicyGate(store, "p1");
+    expect(gate2.recover()).toEqual([r2.requestId]);
+    const changed = ofType(store, "ProjectPolicyChanged");
+    expect(changed).toHaveLength(1);
+    expect(gate2.policy().permissionMode).toEqual(CLAUDE_AUTO);
+    expect(gate2.policy().autoModeConfirmed!.combo.split(";").sort()).toEqual(["claude/windows/native/default", "codex/windows/workspaceWrite/elevated"]);
+    expect(gate2.recover()).toEqual([]);
+    // 정상 경로(confirm r1 → confirm r2)와 같은 최종 정책
+    const { store: s2, gate: g2 } = setup();
+    const a1 = g2.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    const a2 = g2.setPermissionMode(CLAUDE_AUTO, { claude: CLAUDE_NATIVE }, "user");
+    if (a1.status !== "confirmation_required" || a2.status !== "confirmation_required") throw new Error("expected confirmations");
+    g2.confirm(a1.requestId, true);
+    g2.confirm(a2.requestId, true);
+    expect(g2.policy().permissionMode).toEqual(gate2.policy().permissionMode);
+    expect(g2.policy().autoModeConfirmed!.combo.split(";").sort()).toEqual(gate2.policy().autoModeConfirmed!.combo.split(";").sort());
+    void s2;
+  });
 });

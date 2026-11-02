@@ -165,14 +165,17 @@ export class PolicyGate {
     return { status: "applied" };
   }
 
-  /** 재기동 시: 확인됐지만 적용되지 않은 요청을 완성한다. 적용한 requestId 목록을 돌려준다. */
+  /**
+   * 재기동 시: 확인됐지만 적용되지 않은 요청을 완성한다. 답변이 둘 이상이면 정상 경로(confirm 순서대로 적용, 마지막이 덮어씀)와 같은 결과가 되도록
+   * 마지막 답변의 정책을 적용하고 확인된 조합은 전부 합친다(리뷰C#3). 적용한 requestId 목록(0 또는 1개)을 돌려준다.
+   */
   recover(): string[] {
-    const ids = [...this.answered.keys()];
-    for (const id of ids) {
-      const a = this.answered.get(id);
-      if (a) this.applyConfirmed(a);
-    }
-    return ids;
+    const all = [...this.answered.values()];
+    const last = all.at(-1);
+    if (!last) return [];
+    const combo = [...new Set(all.flatMap((a) => splitCombos(a.combo)))].sort().join(COMBO_SEP);
+    this.applyConfirmed({ ...last, combo });
+    return [last.requestId];
   }
 
   /** 경고 배지: 자동 모드가 켜져 있으면 active + 적용된 조합과 그 조합의 경고 목록. */
