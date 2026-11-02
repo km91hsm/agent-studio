@@ -103,5 +103,4 @@ export interface JournalEvent {
 }
 
 /** append 입력: seq 는 저널이 매기고 eventId·ts·redacted 는 생략 시 저널이 채운다. */
-export type NewEvent = Omit<JournalEvent, "seq" | "eventId" | "ts" | "redacted" | "type"> &
-  Partial<Pick<JournalEvent, "eventId" | "ts" | "redacted">> & { type: EventType | string };
+export type NewEvent = Omit<JournalEvent, "seq" | "eventId" | "ts" | "redacted"> & Partial<Pick<JournalEvent, "eventId" | "ts" | "redacted">>;

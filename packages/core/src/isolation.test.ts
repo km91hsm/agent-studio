@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "@agent-studio/protocol";
-import type { PermissionMode } from "@agent-studio/protocol";
+import type { PermissionMode, ProjectPolicy } from "@agent-studio/protocol";
 import type { IsolationWarning } from "./isolation.js";
 import { autoProviders, comboKey, isAutoMode, loadBundledWarnings, PolicyGate, registerIsolationWarnings, warningsFor } from "./isolation.js";
 import { MemoryEventStore } from "./journal/memory-store.js";
@@ -244,5 +244,29 @@ describe("isolation warnings (AC-P01-6)", () => {
     expect(g2.policy().permissionMode).toEqual(gate2.policy().permissionMode);
     expect(g2.policy().autoModeConfirmed!.combo.split(";").sort()).toEqual(gate2.policy().autoModeConfirmed!.combo.split(";").sort());
     void s2;
+  });
+
+  it("(k) 최종리뷰I1 확인 요청과 확인 사이에 적용된 정책 변경(exec DENY)은 확인 뒤에도 유지된다 — 확인은 permissionMode 만 부여한다", () => {
+    const { store, gate } = setup();
+    const r = gate.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    if (r.status !== "confirmation_required") throw new Error("expected confirmation");
+    const cur = gate.policy();
+    const tightened: ProjectPolicy = { ...cur, rules: { ...cur.rules, exec: { ...cur.rules.exec, default: "DENY" } } };
+    expect(gate.setPolicy(tightened, {}, "user")).toEqual({ status: "applied" });
+    expect(gate.policy().rules.exec.default).toBe("DENY");
+    expect(gate.confirm(r.requestId, true)).toEqual({ status: "applied" });
+    expect(gate.policy().permissionMode).toEqual(CODEX_NEVER);
+    expect(gate.policy().rules.exec.default).toBe("DENY");
+    expect(gate.policy().autoModeConfirmed?.combo).toBe(comboKey(CODEX_ELEVATED));
+    const changed = ofType(store, "ProjectPolicyChanged");
+    expect(changed).toHaveLength(2);
+    expect((changed[1]!.payload.after as ProjectPolicy).rules.exec.default).toBe("DENY");
+    // 정책 변경이 없었으면 요청 당시의 next_policy 전체가 그대로 적용된다(기존 동작 유지)
+    const { gate: g2 } = setup();
+    const r2 = g2.setPermissionMode(CODEX_NEVER, { codex: CODEX_ELEVATED }, "user");
+    if (r2.status !== "confirmation_required") throw new Error("expected confirmation");
+    expect(g2.confirm(r2.requestId, true)).toEqual({ status: "applied" });
+    expect(g2.policy().permissionMode).toEqual(CODEX_NEVER);
+    expect(g2.policy().rules).toEqual(DEFAULT_POLICY.rules);
   });
 });

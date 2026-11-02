@@ -79,15 +79,23 @@ export function removeLock(stateDir: string): void {
   rmSync(join(stateDir, LOCK_FILE), { force: true });
 }
 
-/** 프로세스 목록(pid, ppid, OS 생성 시각). win32: CIM. 그 외: ps. */
-export function listProcesses(): ProcessInfo[] {
+/** win32 프로세스 조회에 쓰는 셸 후보(순서대로 시도) — PowerShell 7 이 없는 기본 Windows 는 5.1 `powershell.exe` 로 폴백(최종리뷰I3) */
+export const WIN32_PROCESS_SHELLS: readonly string[] = ["pwsh", "powershell.exe"];
+const WIN32_PROCESS_QUERY = "Get-CimInstance Win32_Process | Select-Object @{n='pid';e={$_.ProcessId}},@{n='ppid';e={$_.ParentProcessId}},@{n='startedAt';e={if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}else{''}}},@{n='name';e={$_.Name}} | ConvertTo-Json -Compress";
+
+/** 프로세스 목록(pid, ppid, OS 생성 시각). win32: CIM(셸 후보를 순서대로 시도, 전부 실패하면 throw — 빈 목록을 돌려주지 않는다). 그 외: ps. */
+export function listProcesses(opts: { shells?: readonly string[] } = {}): ProcessInfo[] {
   if (process.platform === "win32") {
-    const out = execFileSync(
-      "pwsh",
-      ["-NoProfile", "-Command", "Get-CimInstance Win32_Process | Select-Object @{n='pid';e={$_.ProcessId}},@{n='ppid';e={$_.ParentProcessId}},@{n='startedAt';e={if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}else{''}}},@{n='name';e={$_.Name}} | ConvertTo-Json -Compress"],
-      { encoding: "utf8", timeout: 30_000, maxBuffer: 16 * 1024 * 1024 },
-    );
-    return JSON.parse(out) as ProcessInfo[];
+    const failures: string[] = [];
+    for (const shell of opts.shells ?? WIN32_PROCESS_SHELLS) {
+      try {
+        const out = execFileSync(shell, ["-NoProfile", "-Command", WIN32_PROCESS_QUERY], { encoding: "utf8", timeout: 30_000, maxBuffer: 16 * 1024 * 1024 });
+        return JSON.parse(out) as ProcessInfo[];
+      } catch (e) {
+        failures.push(`${shell}: ${e instanceof Error ? e.message.split("\n")[0] : String(e)}`);
+      }
+    }
+    throw new Error(`process list unavailable (${failures.join("; ")})`);
   }
   const out = execFileSync("ps", ["-eo", "pid=,ppid=,lstart=,comm="], { encoding: "utf8", timeout: 30_000, maxBuffer: 16 * 1024 * 1024 });
   return out

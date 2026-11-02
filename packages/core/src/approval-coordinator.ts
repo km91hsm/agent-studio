@@ -4,7 +4,8 @@
  *   대기 사유는 `approval_needed`(기본)·`git_conflict`·`recovery_review`·`compare_blocked`(리뷰A#7). AUTO/DENY 는 전이 없음.
  * - decide: 요청이 보류 중이면 Task 가 그 요청으로 WAITING_APPROVAL 인지 확인한 뒤 기록(아니면 not_pending, 기록 없음);
  *   accept → `approved`, decline/cancel → `denied_terminal`
- * - tick: 만료된 요청마다 `approval_expired`
+ * - tick: 만료된 요청마다 `approval_expired`; 한 요청의 전이가 예외를 내면 `ErrorRaised{class: approval_expired_transition}` 를 기록하고
+ *   나머지를 계속 처리하며 다음 tick 에서 재시도한다(최종리뷰I6 — Broker 는 이미 ApprovalExpired 를 기록해 되돌릴 수 없으므로 Task 가 WAITING_APPROVAL 에 남지 않게)
  * - WAITING_APPROVAL 에서 사용자 `cancel` 이 기록되면 보류 승인을 `decline` 으로 해소한다(PHASE_MANAGEMENT §2 취소 규칙, 리뷰A#6)
  * RPC `approval.decide` 와 데몬 타이머는 이 객체만 호출한다(Scheduler 의 daemon 전이를 직접 부르지 않음).
  */
@@ -20,11 +21,13 @@ export class ApprovalCoordinator {
   private readonly taskOf = new Map<string, string>();
   /** taskId → 아직 결정·만료되지 않은 ASK/ALWAYS_ASK 요청 */
   private readonly pendingOf = new Map<string, string>();
+  /** 만료는 기록됐으나 `approval_expired` 전이가 예외로 실패한 요청 — 다음 tick 에서 재시도 */
+  private readonly retryExpired = new Set<string>();
 
   constructor(
     private readonly scheduler: Scheduler,
     private readonly broker: ApprovalBroker,
-    store: EventStore,
+    private readonly store: EventStore,
   ) {
     store.subscribe(0, (e: JournalEvent) => this.applyEvent(e));
   }
@@ -75,14 +78,24 @@ export class ApprovalCoordinator {
   /** 주기 호출: 만료 요청 → BLOCKED(approval_expired). 이미 다른 경로로 떠난 Task(취소 등)는 건너뛴다. */
   tick(): string[] {
     const expired = this.broker.expire();
-    for (const requestId of expired) {
+    for (const requestId of [...this.retryExpired, ...expired]) {
       const taskId = this.taskOf.get(requestId);
       if (!taskId) continue;
       try {
         this.scheduler.transition(taskId, "approval_expired", { kind: "daemon", requestId });
+        this.retryExpired.delete(requestId);
       } catch (err) {
-        if (err instanceof SchedulerError && err.code === "invalid_transition") continue;
-        throw err;
+        if (err instanceof SchedulerError && err.code === "invalid_transition") {
+          this.retryExpired.delete(requestId); // 이미 다른 경로로 떠난 Task(취소 등)
+          continue;
+        }
+        this.retryExpired.add(requestId);
+        this.store.append({
+          type: "ErrorRaised",
+          taskId,
+          correlationId: requestId,
+          payload: { class: "approval_expired_transition", request_id: requestId, message: err instanceof Error ? err.message : String(err), retry: true },
+        });
       }
     }
     return expired;

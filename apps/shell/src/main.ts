@@ -9,9 +9,10 @@
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, net, protocol, session, Tray, type IpcMainInvokeEvent } from "electron";
-import { DaemonClient, ensureDaemon, tokenStoreFor } from "@agent-studio/core";
+import { DaemonClient, ensureDaemon, readLock, tokenStoreFor } from "@agent-studio/core";
 import type { JournalEvent } from "@agent-studio/protocol";
 import { createIpcHandlers, validateSender, type SenderInfo } from "./ipc-guard.js";
+import { createReconnectLoop } from "./reconnect.js";
 import { EventRelay } from "./relay.js";
 import { securityProbeScript, type SecurityProbeResult } from "./smoke-security.js";
 import { APP_SCHEME, APP_SCHEME_PRIVILEGES, BUNDLE_HOST, BUNDLE_ORIGIN, CSP, devTools, resolveInside, WEB_PREFERENCES } from "./security.js";
@@ -66,17 +67,26 @@ async function start(): Promise<void> {
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, cb) => cb(false));
 
   // 2) 데몬 ensure + 접속 (토큰은 저장소에서 읽는다 — 렌더러로 가지 않는다)
-  const handle = await ensureDaemon(stateDir, { tokenStore: mode, entry: join(REPO_ROOT, "apps", "daemon", "src", "main.ts"), nodePath: "node", cwd: REPO_ROOT });
+  const launch = { tokenStore: mode, entry: join(REPO_ROOT, "apps", "daemon", "src", "main.ts"), nodePath: "node", cwd: REPO_ROOT };
+  const handle = await ensureDaemon(stateDir, launch);
   const token = tokenStoreFor(stateDir, mode, handle).get();
   if (!token) throw new Error("daemon token missing in token store");
   const relay = new EventRelay();
+  // 끊기면 성공할 때까지 백오프 재시도; 락이 사라졌으면(데몬 크래시) 다시 띄운다. 데몬은 저장소의 기존 토큰을 재사용하므로 접속 토큰은 그대로다(최종리뷰I4)
+  const reconnectLoop = createReconnectLoop({
+    shouldStop: () => quitting,
+    log: (m) => process.stderr.write(`${m}\n`),
+    attempt: async () => {
+      if (!readLock(stateDir)) await ensureDaemon(stateDir, launch);
+      await daemon.reconnect();
+    },
+  });
   const daemon = await DaemonClient.connect({
     stateDir,
     token,
     onEvent: (e: JournalEvent) => relay.push(e),
     onDisconnect: () => {
-      if (!quitting) process.stderr.write("daemon connection lost; retrying\n");
-      if (!quitting) setTimeout(() => void daemon.reconnect().catch(() => {}), 1000);
+      if (!quitting) reconnectLoop.trigger();
     },
   });
 

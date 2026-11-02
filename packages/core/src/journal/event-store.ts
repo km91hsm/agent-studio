@@ -43,14 +43,31 @@ export function prepareEvent(e: NewEvent, seq: number, now: () => number = Date.
   };
 }
 
-/** 구독자 목록(재생 후 실시간) — 두 어댑터가 공유. */
+/**
+ * 구독자 목록(재생 후 실시간) — 두 어댑터가 공유.
+ * 전달 계약(최종리뷰C1): 구독자 콜백 안에서 append 된 이벤트는 현재 이벤트가 모든 구독자에게 전달된 뒤에 전달된다 — 어떤 구독자도
+ * seq 를 역순으로 받지 않는다. 따라서 콜백 안의 중첩 append 가 돌아왔을 때 저널에서 파생되는 상태(Scheduler 등)는 아직 그 이벤트를
+ * 반영하지 않았을 수 있다(저널 자체는 이미 기록됐다).
+ */
 export class Subscribers {
   private readonly subs = new Set<(e: JournalEvent) => void>();
+  private readonly queue: JournalEvent[] = [];
+  private draining = false;
   add(cb: (e: JournalEvent) => void): () => void {
     this.subs.add(cb);
     return () => this.subs.delete(cb);
   }
   emit(e: JournalEvent): void {
-    for (const cb of [...this.subs]) cb(e);
+    this.queue.push(e);
+    if (this.draining) return; // 콜백 안의 중첩 append — 바깥 순회가 끝난 뒤 순서대로 전달된다
+    this.draining = true;
+    try {
+      while (this.queue.length) {
+        const next = this.queue.shift()!;
+        for (const cb of [...this.subs]) cb(next);
+      }
+    } finally {
+      this.draining = false;
+    }
   }
 }

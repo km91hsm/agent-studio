@@ -426,4 +426,38 @@ describe("rpc (k) 리뷰C#4 자동 재접속 vs 수동 reconnect", () => {
     expect(received).toEqual(range(N));
   });
 });
+
+describe("rpc (l) 최종리뷰C1 중첩 append 와 seq 순서", () => {
+  it("WAITING_APPROVAL 에서 task.cancel(→ Coordinator 가 콜백 안에서 decline 기록) 뒤에도 클라이언트는 갭 없이 오름차순으로 받는다", async () => {
+    const b = await boot();
+    const { client, received } = await connect(b.stateDir);
+    const { taskId } = await toWaitingApproval(b);
+    await until(() => client.lastSeq === b.store.lastSeq());
+    expect(await client.call("task.cancel", { taskId })).toEqual({ status: "CANCELLED" });
+    const N = b.store.lastSeq();
+    expect(b.store.read(1).filter((e) => e.type === "ApprovalDecided")).toHaveLength(1);
+    await until(() => received.length >= N);
+    expect(received).toEqual(range(N));
+    expect(client.gaps).toBe(0);
+    expect(client.dropped).toBe(0);
+    expect(client.connected).toBe(true);
+  });
+});
+
+describe("rpc (m) 최종리뷰I2 combos 호스트 OS 대조", () => {
+  it("combos[*].os 가 데몬 호스트 OS 와 다르면 -32602 이고 정책·저널은 불변(렌더러가 경고 없는 조합을 자칭할 수 없다)", async () => {
+    const b = await boot();
+    const { client } = await connect(b.stateDir);
+    const hostOs = process.platform === "win32" ? "windows" : process.platform === "darwin" ? "macos" : "linux";
+    const foreign = hostOs === "linux" ? "windows" : "linux";
+    const auto = { ...DEFAULT_POLICY, permissionMode: { claude: "default", codex: { approvalPolicy: "never", sandbox: "workspaceWrite" } } };
+    const before = b.store.lastSeq();
+    const e = await client.call("policy.set", { projectId: "p1", policy: auto, combos: { codex: { provider: "codex", os: foreign, sandbox: "workspaceWrite", variant: "elevated" } } }).catch((err: unknown) => err);
+    expect(e).toBeInstanceOf(RpcCallError);
+    expect((e as RpcCallError).code).toBe(-32602);
+    expect((e as RpcCallError).message).toMatch(new RegExp(`${foreign}.*${hostOs}|${hostOs}.*${foreign}`));
+    expect(b.gate.policy().permissionMode).toEqual(DEFAULT_POLICY.permissionMode);
+    expect(b.store.lastSeq()).toBe(before);
+  });
+});
 });

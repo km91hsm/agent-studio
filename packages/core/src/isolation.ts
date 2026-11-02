@@ -25,6 +25,10 @@ export type Provider = "claude" | "codex";
 export type Combos = Partial<Record<Provider, Combo | string>>;
 
 export const comboKey = (c: Combo | string): string => (typeof c === "string" ? c : `${c.provider}/${c.os}/${c.sandbox}/${c.variant}`);
+/** 조합의 os 항목(문자열 형식은 두 번째 구간) */
+export const comboOs = (c: Combo | string): string => (typeof c === "string" ? (c.split("/")[1] ?? "") : c.os);
+/** 데몬 호스트 OS — S4 경고 표의 os 값과 같은 어휘(windows | macos | linux) */
+export const hostOs = (platform: NodeJS.Platform = process.platform): string => (platform === "win32" ? "windows" : platform === "darwin" ? "macos" : "linux");
 const COMBO_SEP = ";";
 const splitCombos = (joined: string | undefined): string[] => (joined ?? "").split(COMBO_SEP).filter(Boolean);
 
@@ -65,7 +69,8 @@ export function autoProviders(pm: PermissionMode): Provider[] {
 }
 export const isAutoMode = (pm: PermissionMode): boolean => autoProviders(pm).length > 0;
 
-type Pending = { requestId: string; combo: string; next: ProjectPolicy };
+/** `superseded`: 요청 뒤 다른 정책 변경이 적용됨 — 확인 시 `next` 전체 대신 permissionMode 만 현재 정책 위에 얹는다(최종리뷰I1) */
+type Pending = { requestId: string; combo: string; next: ProjectPolicy; superseded?: boolean };
 export type SetPolicyResult = { status: "applied" } | { status: "confirmation_required"; requestId: string; warnings: IsolationWarning[] };
 
 export class PolicyGate {
@@ -91,6 +96,8 @@ export class PolicyGate {
       if (typeof e.payload.combo === "string" && e.payload.combo) this.lastCombo = e.payload.combo;
       // 어떤 정책 변경이든 그 이전에 확인된(미적용) 요청의 next_policy 를 대체한다 — 재기동 recover() 가 옛 정책으로 덮지 않는다(리뷰B#10)
       this.answered.clear();
+      // 아직 답변 전인 요청은 살려 두되, 확인 시 요청 당시의 정책 전체가 아니라 permissionMode 만 부여한다(최종리뷰I1 — 그 사이의 강화가 풀리지 않는다)
+      for (const p of this.pendingMap.values()) p.superseded = true;
     } else if (e.type === "UserInputRequested" && e.payload.kind === "isolation_confirm" && typeof e.payload.request_id === "string") {
       const next = (e.payload.next_policy as ProjectPolicy | undefined) ?? { ...this.current, permissionMode: e.payload.next_permission_mode as PermissionMode };
       this.pendingMap.set(e.payload.request_id, { requestId: e.payload.request_id, combo: String(e.payload.combo), next });
@@ -189,7 +196,8 @@ export class PolicyGate {
 
   private applyConfirmed(p: Pending): void {
     const union = new Set([...splitCombos(this.current.autoModeConfirmed?.combo), ...splitCombos(p.combo)]);
-    const after: ProjectPolicy = { ...p.next, autoModeConfirmed: { combo: [...union].sort().join(COMBO_SEP), at: new Date(this.now()).toISOString() } };
+    const base: ProjectPolicy = p.superseded ? { ...this.current, permissionMode: p.next.permissionMode } : p.next;
+    const after: ProjectPolicy = { ...base, autoModeConfirmed: { combo: [...union].sort().join(COMBO_SEP), at: new Date(this.now()).toISOString() } };
     this.applyPolicy(after, "user", p.combo, p.requestId);
   }
 

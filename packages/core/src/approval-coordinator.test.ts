@@ -2,7 +2,7 @@
  * ApprovalCoordinator — Broker 결정·만료를 Scheduler 의 DAEMON 전이로 잇는 유일한 경로(검토 #3).
  * lease 만료(91s) 중에도 WAITING_APPROVAL 은 유지되고, 요청 시각 기준 15분이 지나면 BLOCKED(approval_expired).
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_POLICY } from "@agent-studio/protocol";
 import { DefaultPolicyBroker } from "./approval-broker.js";
 import { ApprovalCoordinator } from "./approval-coordinator.js";
@@ -140,5 +140,39 @@ describe("ApprovalCoordinator", () => {
     coord.decide(r2.requestId, "decline", "user");
     expect(scheduler.state(id).status).toBe("CANCELLED");
     expect(() => coord.request({ taskId: id, runId: "run-1", kind: "user_input", category: "project_trust", request: {} }, token, "recovery_review")).toThrow();
+  });
+
+  it("(10) 최종리뷰I6 tick(): 한 요청의 전이가 예외를 던져도 나머지 만료 요청은 BLOCKED 가 되고 ErrorRaised 를 기록하며 다음 tick 에서 재시도한다", () => {
+    const { c, store, scheduler, coord, id, token } = setup();
+    const id2 = scheduler.submit({ title: "t2", kind: "impl" });
+    const { fencingToken: token2 } = scheduler.acquireLease(id2, "run-2");
+    scheduler.transition(id2, "lease_acquired", { kind: "lease", token: token2 });
+    store.append({ type: "PlanArtifact", taskId: id2, payload: {} });
+    store.append({ type: "SkillSelected", taskId: id2, payload: {} });
+    scheduler.transition(id2, "plan_accepted", { kind: "lease", token: token2 });
+    const r1 = coord.request({ taskId: id, runId: "run-1", kind: "approval", category: "exec", request: {} }, token);
+    const r2 = coord.request({ taskId: id2, runId: "run-2", kind: "approval", category: "exec", request: {} }, token2);
+    c.advance(15 * 60_000 + 1);
+    const real = scheduler.transition.bind(scheduler);
+    let failed: string | undefined;
+    const spy = vi.spyOn(scheduler, "transition").mockImplementation((taskId, event, auth, payload) => {
+      if (event === "approval_expired" && failed === undefined) {
+        failed = taskId;
+        throw new Error("boom: projection write failed");
+      }
+      return real(taskId, event, auth, payload);
+    });
+    expect(coord.tick().sort()).toEqual([r1.requestId, r2.requestId].sort());
+    const survivor = failed === id ? id2 : id;
+    expect(scheduler.state(survivor).status).toBe("BLOCKED");
+    expect(scheduler.state(failed!).status).toBe("WAITING_APPROVAL");
+    const errors = store.read(1).filter((e) => e.type === "ErrorRaised");
+    expect(errors).toHaveLength(1);
+    expect(errors[0]!.taskId).toBe(failed);
+    expect(errors[0]!.payload).toMatchObject({ class: "approval_expired_transition", message: expect.stringContaining("boom") as unknown });
+    spy.mockRestore();
+    expect(coord.tick()).toEqual([]); // 새로 만료된 요청은 없다
+    expect(scheduler.state(failed!).status).toBe("BLOCKED"); // 실패했던 전이가 재시도됐다
+    expect(store.read(1).filter((e) => e.type === "ErrorRaised")).toHaveLength(1);
   });
 });

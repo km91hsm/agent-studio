@@ -87,6 +87,20 @@ describe.each(factories)("EventStore contract (%s)", (_name, make) => {
     expect(got).toEqual([2, 3, 4]);
   });
 
+  it("최종리뷰C1 구독자 콜백 안에서 append 해도 모든 구독자가 seq 오름차순으로 받는다(재진입은 큐로 직렬화)", () => {
+    const s = make();
+    const first: number[] = [];
+    const second: number[] = [];
+    s.subscribe(1, (e) => {
+      first.push(e.seq);
+      if (e.type === "TaskTransition") s.append(ev("ApprovalRequested", { nested: true }));
+    });
+    s.subscribe(1, (e) => second.push(e.seq));
+    s.append(ev("TaskTransition"));
+    expect(s.read(1).map((e) => [e.seq, e.type])).toEqual([[1, "TaskTransition"], [2, "ApprovalRequested"]]);
+    expect(first).toEqual([1, 2]);
+    expect(second).toEqual([1, 2]);
+  });
   it("모르는 type 은 throw 하고 저널은 비어 있다", () => {
     const s = make();
     expect(() => s.append(ev("Bogus"))).toThrow(/unknown event type/i);

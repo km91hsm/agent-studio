@@ -23,6 +23,8 @@ export interface LaunchOptions {
   nodePath?: string;
   /** spawn cwd(기본 저장소 루트) — `--import tsx` 가 여기서 해석된다 */
   cwd?: string;
+  /** 락의 pid 조회(기본 `probeProcess`). 조회가 throw 하면 접속으로 판정한다(최종리뷰I3) */
+  probe?: (pid: number) => { pidAlive: boolean; processStartedAt: string | null };
 }
 
 /** 소스 트리 기준 기본값. 번들된 Shell 에서는 경로가 맞지 않으므로 Shell 은 entry·cwd 를 명시한다. */
@@ -81,11 +83,21 @@ export async function spawnDaemon(stateDir: string, opts: LaunchOptions = {}): P
   }
 }
 
-/** Shell 의 ensureDaemon: 락 검증 → 재접속(live) / stale 정리 후 spawn / incompatible·unreachable·forged 는 락 보존 + 명시적 오류 */
+/**
+ * Shell 의 ensureDaemon: 락 검증 → 재접속(live) / stale 정리 후 spawn / incompatible·unreachable·forged 는 락 보존 + 명시적 오류.
+ * 프로세스 조회가 불가능하면(셸 없음 등) stale 로 오판하지 않고 접속으로 판정한다: 접속·nonce 일치 → live, 실패 → 락 보존 + 오류(최종리뷰I3).
+ */
 export async function ensureDaemon(stateDir: string, opts: LaunchOptions = {}): Promise<DaemonHandle> {
   const lock = readLock(stateDir);
   if (!lock) return spawnDaemon(stateDir, opts);
-  const probe = probeProcess(lock.pid);
+  let probe: { pidAlive: boolean; processStartedAt: string | null };
+  let probeError: string | undefined;
+  try {
+    probe = (opts.probe ?? probeProcess)(lock.pid);
+  } catch (e) {
+    probeError = e instanceof Error ? e.message : String(e);
+    probe = { pidAlive: true, processStartedAt: lock.startedAt }; // 조회 불가 — 접속 결과만으로 판정
+  }
   let assessment = assessLock(lock, { ...probe, helloNonce: null });
   if (assessment.verdict === "connectable") {
     let lastErr: unknown;
@@ -106,9 +118,11 @@ export async function ensureDaemon(stateDir: string, opts: LaunchOptions = {}): 
     }
     if (lastErr !== undefined) {
       const kind = classifyConnectError(lastErr);
-      throw new Error(`daemon ${kind.kind}${kind.code ? ` (close ${kind.code})` : ""}: ${String(lastErr instanceof Error ? lastErr.message : lastErr)} — lock kept at ${join(stateDir, "daemon.lock")}`);
+      const prefix = probeError ? `cannot verify daemon (process list unavailable: ${probeError}); ` : "";
+      throw new Error(`${prefix}daemon ${kind.kind}${kind.code ? ` (close ${kind.code})` : ""}: ${String(lastErr instanceof Error ? lastErr.message : lastErr)} — lock kept at ${join(stateDir, "daemon.lock")}`);
     }
   }
+  if (probeError && assessment.verdict !== "live") throw new Error(`cannot verify daemon (process list unavailable: ${probeError}) — lock kept at ${join(stateDir, "daemon.lock")}`);
   if (assessment.verdict === "live") return { ...lock, assessment, spawned: false };
   removeLock(stateDir); // stale 락 정리(pid 없음·PID 재사용·nonce 불일치·잘못된 타임스탬프)
   const h = await spawnDaemon(stateDir, opts);

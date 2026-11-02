@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { EVENT_TYPES, TASK_KINDS, isEventType } from "./events.js";
+import { EVENT_TYPES, TASK_KINDS, isEventType, type NewEvent } from "./events.js";
 
 const DOC = fileURLToPath(new URL("../../../docs/planning/02_agents_state/DATABASE_SCHEMA.md", import.meta.url));
 
@@ -76,5 +76,11 @@ describe("EVENT_TYPES ↔ DATABASE_SCHEMA §2.1", () => {
     expect(isEventType("TaskTransition")).toBe(true);
     expect(isEventType("Bogus")).toBe(false);
     expect([...TASK_KINDS]).toEqual(["plan", "research", "prototype", "impl", "review", "verify", "replan"]);
+  });
+
+  it("최종리뷰I5 NewEvent.type 은 EventType 만 받는다(컴파일 타임 — 모르는 이벤트 이름은 tsc 오류)", () => {
+    // @ts-expect-error 모르는 이벤트 이름은 타입 오류여야 한다(계획 Interfaces `type: EventType`)
+    const bad: NewEvent = { type: "NotAnEventType", payload: {} };
+    expect(isEventType(bad.type)).toBe(false);
   });
 });

@@ -12,7 +12,7 @@ import type { ProjectPolicy } from "@agent-studio/protocol";
 import { WebSocketServer, type WebSocket } from "ws";
 import { ApprovalError, type ApprovalBroker, type Decision } from "../approval-broker.js";
 import type { ApprovalCoordinator } from "../approval-coordinator.js";
-import { allWarnings, type Combos, type PolicyGate } from "../isolation.js";
+import { allWarnings, comboOs, hostOs, type Combos, type PolicyGate } from "../isolation.js";
 import type { EventStore } from "../journal/event-store.js";
 import { Scheduler, SchedulerError } from "../scheduler.js";
 import { ownCreationTime, removeLock, writeLock, type LockFile } from "./lock.js";
@@ -193,8 +193,14 @@ export async function startRpcServer(opts: RpcServerOptions): Promise<RpcServer>
         requireProject(params.projectId);
         const errors = validatePolicy(params.policy);
         if (errors.length) throw new RpcFailure(RPC_ERRORS.INVALID_PARAMS, "invalid policy", { errors });
+        const combos = (params.combos as Combos | undefined) ?? {};
+        // 최종리뷰I2: 조합은 호출자 입력이므로 데몬이 검증할 수 있는 항목(호스트 OS)은 여기서 대조한다 — 경고 없는 다른 OS 조합을 자칭해 확인을 건너뛸 수 없다.
+        // sandbox·variant 는 실행 어댑터가 정해지는 P02 에서 데몬이 직접 산출한다(R24).
+        for (const c of Object.values(combos)) {
+          if (c && comboOs(c) !== hostOs()) throw new RpcFailure(RPC_ERRORS.INVALID_PARAMS, `combo os ${comboOs(c)} does not match daemon host os ${hostOs()}`);
+        }
         try {
-          return gate.setPolicy(params.policy as ProjectPolicy, (params.combos as Combos | undefined) ?? {}, "user");
+          return gate.setPolicy(params.policy as ProjectPolicy, combos, "user");
         } catch (e) {
           if (e instanceof Error && /combo/.test(e.message)) throw new RpcFailure(RPC_ERRORS.INVALID_PARAMS, e.message);
           throw e;
