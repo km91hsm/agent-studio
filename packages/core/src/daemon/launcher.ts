@@ -19,10 +19,15 @@ export interface LaunchOptions {
   tokenStore?: "file" | "keyring";
   /** 데몬 엔트리 .ts 경로(기본 apps/daemon/src/main.ts) */
   entry?: string;
+  /** 데몬을 띄울 Node 실행 파일(기본 process.execPath). Electron Shell 은 ABI 가 다른 자기 런타임 대신 시스템 `node` 를 지정한다. */
+  nodePath?: string;
+  /** spawn cwd(기본 저장소 루트) — `--import tsx` 가 여기서 해석된다 */
+  cwd?: string;
 }
 
-const DEFAULT_ENTRY = fileURLToPath(new URL("../../../../apps/daemon/src/main.ts", import.meta.url));
-const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
+/** 소스 트리 기준 기본값. 번들된 Shell 에서는 경로가 맞지 않으므로 Shell 은 entry·cwd 를 명시한다. */
+const defaultEntry = (): string => fileURLToPath(new URL("../../../../apps/daemon/src/main.ts", import.meta.url));
+const defaultRepoRoot = (): string => fileURLToPath(new URL("../../../../", import.meta.url));
 const SPAWN_LOCK_STALE_MS = 60_000;
 
 /**
@@ -66,8 +71,8 @@ export async function spawnDaemon(stateDir: string, opts: LaunchOptions = {}): P
   }
   try {
     removeLock(stateDir);
-    const args = ["--import", "tsx", opts.entry ?? DEFAULT_ENTRY, "--dir", stateDir, "--token-store", opts.tokenStore ?? "keyring"];
-    const child = spawn(process.execPath, args, { detached: true, stdio: "ignore", windowsHide: true, cwd: REPO_ROOT });
+    const args = ["--import", "tsx", opts.entry ?? defaultEntry(), "--dir", stateDir, "--token-store", opts.tokenStore ?? "keyring"];
+    const child = spawn(opts.nodePath ?? process.execPath, args, { detached: true, stdio: "ignore", windowsHide: true, cwd: opts.cwd ?? defaultRepoRoot() });
     child.unref();
     const lock = await waitForLock(stateDir, child.pid ?? null, 20_000);
     return { ...lock, spawned: true };

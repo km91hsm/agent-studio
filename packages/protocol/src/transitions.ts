@@ -2,7 +2,7 @@
  * Task 상태 머신 타입 + `task-transitions.json` 로더 (P01 T4). JSON 이 단일 출처이고 이 파일은 타입·조회만 제공한다.
  * 이벤트 분류(검토 #1): USER(사용자 조작, 토큰 없음) / DAEMON(승인 결과, ApprovalCoordinator 전용) / LEASE(현재 lease 토큰 필수).
  */
-import { readFileSync } from "node:fs";
+import transitionsJson from "./task-transitions.json" with { type: "json" };
 
 export const TASK_STATES = ["QUEUED", "PLANNING", "IMPLEMENTING", "REVIEWING", "REWORK", "VERIFYING", "WAITING_APPROVAL", "BLOCKED", "COMPLETED", "FAILED", "CANCELLED"] as const;
 export type TaskState = (typeof TASK_STATES)[number];
@@ -95,7 +95,7 @@ export interface TransitionTable {
 }
 
 export function loadTransitions(): TransitionTable {
-  const raw = JSON.parse(readFileSync(new URL("./task-transitions.json", import.meta.url), "utf8")) as TransitionTable & { $comment?: string };
+  const raw = structuredClone(transitionsJson) as TransitionTable & { $comment?: string };
   const { $comment: _c, ...table } = raw;
   return table;
 }

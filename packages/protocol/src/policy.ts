@@ -3,8 +3,8 @@
  * 기본 verdict = §2 "기본" 열, 조건부 규칙은 `exceptions[]`(신호 → verdict)로 데이터화한다(검토 #11).
  * 신호를 공급자 이벤트에서 **추출**하는 것은 P10a 범위이고, P01 은 스키마·판정만 제공한다.
  */
-import { readFileSync } from "node:fs";
 import { Ajv } from "ajv";
+import policySchemaJson from "./policy.schema.json" with { type: "json" };
 
 export const APPROVAL_CATEGORIES = [
   "project_trust",
@@ -106,7 +106,7 @@ let validator: ((x: unknown) => boolean) & { errors?: { instancePath: string; me
 
 export function validatePolicy(input: unknown): string[] {
   if (!validator) {
-    const schema = JSON.parse(readFileSync(new URL("./policy.schema.json", import.meta.url), "utf8")) as object;
+    const schema = structuredClone(policySchemaJson) as object;
     const ajv = new Ajv({ allErrors: true, strict: true });
     validator = ajv.compile(schema) as typeof validator;
   }

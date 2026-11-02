@@ -5,10 +5,10 @@
  * 리뷰A#4: 실행 조합은 공급자별(`combos.claude`/`combos.codex`)로 받고, 자동 모드를 켜는 공급자마다 같은 공급자의 조합이 있어야 한다.
  * 리뷰A#9: `UserInputAnswered{confirmed}` 뒤 `ProjectPolicyChanged` 전에 중단되면 재기동 시 `recover()`(또는 confirm 재호출)로 완성한다.
  */
-import { readFileSync } from "node:fs";
 import type { PermissionMode, ProjectPolicy } from "@agent-studio/protocol";
 import { DEFAULT_POLICY, ulid } from "@agent-studio/protocol";
 import type { EventStore, JournalEvent } from "./journal/event-store.js";
+import isolationWarningsJson from "../isolation-warnings.json" with { type: "json" };
 
 export interface IsolationWarning {
   provider: string;
@@ -30,7 +30,7 @@ const splitCombos = (joined: string | undefined): string[] => (joined ?? "").spl
 
 /** 번들 픽스처(`packages/core/isolation-warnings.json`, S4 산출물 복사본). */
 export function loadBundledWarnings(): IsolationWarning[] {
-  return (JSON.parse(readFileSync(new URL("../isolation-warnings.json", import.meta.url), "utf8")) as { warnings: IsolationWarning[] }).warnings;
+  return structuredClone(isolationWarningsJson as { warnings: IsolationWarning[] }).warnings;
 }
 
 export function registerIsolationWarnings(store: EventStore, warnings: IsolationWarning[]): void {

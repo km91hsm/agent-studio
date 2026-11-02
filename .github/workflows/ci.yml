@@ -18,6 +18,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - name: renderer + shell bundles (P01 T6/T7 — CSP meta·CJS main/preload 가 빌드된다)
+        run: npm run renderer:build && npm run shell:build
       - run: npm test
       - name: daemon self-test (P01 T2 — detached entry boots, writes lock, answers daemon.status, exits 0)
         run: npm run daemon -- --dir "${{ runner.temp }}/as-daemon" --token-store file --self-test

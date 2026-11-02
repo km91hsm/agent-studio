@@ -13,6 +13,7 @@
     "test:live": "cross-env AGENT_STUDIO_LIVE=1 vitest run",
     "schema:diff": "bash packages/protocol/codex-schema/diff.sh",
     "renderer:build": "vite build apps/renderer",
+    "shell:build": "vite build apps/shell && vite build apps/shell --mode preload",
     "daemon": "node --import tsx apps/daemon/src/main.ts"
   },
   "devDependencies": {

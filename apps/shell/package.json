@@ -3,9 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "description": "Electron shell: window, tray, daemon attach, narrow IPC relay",
-  "main": "dist/main.js",
+  "main": "dist/main.cjs",
   "dependencies": {
     "@agent-studio/core": "*",
     "@agent-studio/protocol": "*"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "vite build && vite build --mode preload"
   }
 }
