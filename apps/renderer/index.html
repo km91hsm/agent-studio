@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <!-- CSP 정본: SECURITY_MODEL §7 문자열 그대로(바이트 일치, AC-P01-4). Shell 의 onHeadersReceived 와 같은 값. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Studio</title>
+    <link rel="stylesheet" href="./src/app.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>
