@@ -4,6 +4,7 @@
  * 렌더러 ↔ main 은 ipc-guard 를 거친 read/write RPC 와 events 배치만.
  * 환경변수: AGENT_STUDIO_STATE_DIR(기본 userData/daemon), AGENT_STUDIO_TOKEN_STORE(file|keyring, 기본 keyring), AGENT_STUDIO_DEV(devTools).
  * `--smoke`: 창 로드 → 렌더러 seq ≥ 1 대기 → daemon.status → stdout JSON → daemon.shutdown → 종료(LIVE 테스트 계약).
+ * `--security-probe`: daemon.status(c0) → 렌더러에서 데몬 포트로 fetch/WebSocket 시도(smoke-security.ts) → daemon.status(c1) → stdout JSON → 종료.
  */
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -12,9 +13,11 @@ import { DaemonClient, ensureDaemon, tokenStoreFor } from "@agent-studio/core";
 import type { JournalEvent } from "@agent-studio/protocol";
 import { createIpcHandlers, validateSender, type SenderInfo } from "./ipc-guard.js";
 import { EventRelay } from "./relay.js";
+import { securityProbeScript, type SecurityProbeResult } from "./smoke-security.js";
 import { APP_SCHEME, APP_SCHEME_PRIVILEGES, BUNDLE_HOST, BUNDLE_ORIGIN, CSP, devTools, resolveInside, WEB_PREFERENCES } from "./security.js";
 
 const SMOKE = process.argv.includes("--smoke");
+const PROBE = process.argv.includes("--security-probe"); // T8 AC-P01-5: 렌더러가 데몬에 닿을 수 없음을 증명
 const IS_DEV = process.env.AGENT_STUDIO_DEV === "1";
 const APP_PATH = app.getAppPath(); // apps/shell
 const REPO_ROOT = resolve(APP_PATH, "..", "..");
@@ -78,7 +81,7 @@ async function start(): Promise<void> {
   });
 
   // 3) 창
-  win = new BrowserWindow({ width: 1100, height: 760, show: !SMOKE, webPreferences: { ...WEB_PREFERENCES, preload: PRELOAD, devTools: devTools(IS_DEV) } });
+  win = new BrowserWindow({ width: 1100, height: 760, show: !SMOKE && !PROBE, webPreferences: { ...WEB_PREFERENCES, preload: PRELOAD, devTools: devTools(IS_DEV) } });
   const wc = win.webContents;
   wc.on("will-navigate", (e) => e.preventDefault());
   wc.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -129,6 +132,16 @@ async function start(): Promise<void> {
 
   await win.loadURL(`${BUNDLE_ORIGIN}index.html`);
 
+  if (PROBE) {
+    const s0 = (await daemon.call("daemon.status")) as { connections: number };
+    const probe = (await wc.executeJavaScript(securityProbeScript(handle.port))) as SecurityProbeResult;
+    const s1 = (await daemon.call("daemon.status")) as { connections: number };
+    const ok = probe.fetch.startsWith("rejected") && probe.ws !== "open" && s1.connections === s0.connections;
+    process.stdout.write(`${JSON.stringify({ ok, c0: s0.connections, c1: s1.connections, port: handle.port, probe })}
+`);
+    await shutdownAndQuit();
+    return;
+  }
   if (SMOKE) {
     const deadline = Date.now() + 15_000;
     let rendererSeq = 0;
