@@ -6,3 +6,4 @@ export * from "./events.js";
 export * from "./ulid.js";
 export * from "./transitions.js";
 export * from "./policy.js";
+export * from "./rpc.js";

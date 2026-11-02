@@ -19,6 +19,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - name: daemon self-test (P01 T2 — detached entry boots, writes lock, answers daemon.status, exits 0)
+        run: npm run daemon -- --dir "${{ runner.temp }}/as-daemon" --token-store file --self-test
   codex-schema-diff:
     # P01 T10: codex app-server 스키마 재생성 diff. codex npm 패키지를 받을 수 없으면 성공으로 위장하지 않고 UNVERIFIED 로 요약한다.
     runs-on: ubuntu-latest
