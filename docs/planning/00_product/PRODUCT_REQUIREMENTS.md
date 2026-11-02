@@ -203,19 +203,19 @@
 
 ## 13A. 상속·보충 기능 (CAP)
 
-원칙 **최대 통과 + 3단 보충**(정본: AGENT_INTEGRATION_DESIGN §7): (1) 런타임이 헤드리스에서 제공하는 도구·스킬·플러그인·MCP는 그대로 노출 (2) 없는 기능은 Agent Studio MCP 도구 서버가 제공 (3) 그래도 없으면 LLM이 스크립트로 수행(설치는 승인, OS 입력 제어는 3단 금지). 이것은 **설계 원칙이며 능력 보증이 아니다**: 각 행은 P00 S9에서 `supported / conditional / unsupported`로 판정되고, 아래 "1단" 표기는 S9 전까지 `conditional(UNVERIFIED)`다(예외: 내장 파일 도구는 공식 문서·실사용으로 `supported`). 미지원·조건부 항목은 UI 노출 전 V1 구현·보안 AC를 별도로 통과해야 한다. 공급자별 구현 경로와 S9 판정 항목은 AGENT_INTEGRATION_DESIGN §7 표가 단일 출처다.
+원칙 **최대 통과 + 3단 보충**(정본: AGENT_INTEGRATION_DESIGN §7): (1) 런타임이 헤드리스에서 제공하는 도구·스킬·플러그인·MCP는 그대로 노출 (2) 없는 기능은 Agent Studio MCP 도구 서버가 제공 (3) 그래도 없으면 LLM이 스크립트로 수행(설치는 승인, OS 입력 제어는 3단 금지). 이것은 **설계 원칙이며 능력 보증이 아니다**: 각 행은 P00 S9에서 `supported / conditional / unsupported`로 **판정됐다**(2026-11-02, 판정표 AGENT_INTEGRATION_DESIGN §7·`docs/spikes/S9.md` §1; 2차 승인 #11로 반영). 미지원·조건부 항목은 UI 노출 전 V1 구현·보안 AC를 별도로 통과해야 한다. 공급자별 구현 경로와 S9 판정 항목은 AGENT_INTEGRATION_DESIGN §7 표가 단일 출처다.
 
 | ID | 요구사항 | 경로 | 릴리스 |
 |---|---|---|---|
-| REQ-CAP-01 | 플랜 모드(읽기 전용 계획) 선택 | 1단 | MVP-Core(P02) |
-| REQ-CAP-02 | 자동 권한 모드를 프로젝트별 옵트인으로 선택 — 기본은 안전(승인) 모드; **모든 공급자·OS·격리 조합**에서 옵트인 가능(U8), 격리 미확인 조합은 경고 배지 + 활성 시 1회 확인; 상시 배지 문구는 UI_UX_SPECIFICATION §7, 보장 수준은 SECURITY_MODEL §2.1 | 1단 | MVP-Core(P02) |
-| REQ-CAP-03 | 파일 생성·편집, PDF·이미지 읽기(내장 도구 `supported`; Codex Desktop 번들 플러그인은 conditional) | 1단 | MVP-Core(내장) / V1(플러그인, S9) |
-| REQ-CAP-04 | 문서 생성(docx/xlsx/pptx/pdf) | 1단→3단 | V1(S9 후) |
-| REQ-CAP-05 | 이미지 생성·편집(Claude는 생성 기능 없음 → Codex 라우팅 또는 2단 API) | 1단(Codex)/2단 | V1(S9 후) |
-| REQ-CAP-06 | 브라우저 자동화 | 1단→2단 | V1(P10b T9; 미리보기 P08c는 별도 REQ-WS-08) |
-| REQ-CAP-07 | 컴퓨터 사용(화면 캡처·마우스·키보드) | 2단 **전용**(3단 스크립트 금지, 캡처·입력 분리 승인) | V1 조건부(TEST-SE-10) |
-| REQ-CAP-08 | Agent Studio MCP 도구 서버(컴퓨터 사용·이미지 생성 API·브라우저 연계)를 양 에이전트에 제공(`mcpServers` / `-c mcp_servers.*`) | 2단 | V1(S9 결과로 범위 확정) |
-| REQ-CAP-09 | Codex `CODEX_HOME` 공유 — **사용자 것 공유가 기본**(U9), 격리는 프로젝트별 옵션. 공유 시 Desktop 플러그인·스킬·로그인·MCP·`notify` 상속, 유효 설정 스냅숏·앱 소유 스레드 필터 의무; 전역 `config.toml` 미수정 | 1단 | MVP-Core |
+| REQ-CAP-01 | 플랜 모드(읽기 전용 계획) 선택 — S9 supported ×2; Claude는 앱의 ExitPlanMode 거부가 전제 | 1단 | MVP-Core(P02) |
+| REQ-CAP-02 | 자동 권한 모드를 프로젝트별 옵트인으로 선택 — 기본은 안전(승인) 모드; **모든 공급자·OS·격리 조합**에서 옵트인 가능(U8), 격리 미확인 조합은 경고 배지 + 활성 시 1회 확인(Claude native = conditional, 배지 상시); 상시 배지 문구는 UI_UX_SPECIFICATION §7, 보장 수준은 SECURITY_MODEL §2.1 | 1단 | MVP-Core(P02) |
+| REQ-CAP-03 | 파일 생성·편집, PDF·이미지 읽기(내장 도구 `supported`; **PDF·이미지 읽기는 V1 실측**; Codex Desktop 번들 플러그인은 conditional) | 1단 | MVP-Core(내장) / V1(플러그인) |
+| REQ-CAP-04 | 문서 생성(docx/xlsx/pptx/pdf) — **Codex 1단 산출물 재현 ✓**(조건: documents 플러그인 + ChatGPT 로그인 + 공유 홈, 단일 DOCX) / Claude 1단 조건부(synced 스킬 노출만) → 3단 | 1단→3단 | V1 |
+| REQ-CAP-05 | 이미지 생성·편집 — **Codex 1단 산출물 재현 ✓**(ChatGPT 로그인; API key 모드 미판정), Claude는 생성 기능 없음(실측) → Codex 라우팅 또는 2단 API | 1단(Codex)/2단 | V1 |
+| REQ-CAP-06 | 브라우저 자동화 — Claude `--chrome` 노출·connected 확인(조작 미실측), Codex 번들 플러그인 노출 확인 | 1단→2단 | V1(P10b T9; 미리보기 P08c는 별도 REQ-WS-08) |
+| REQ-CAP-07 | 컴퓨터 사용(화면 캡처·마우스·키보드) — 2단 전용은 **제품 정책**; 근거: Claude 헤드리스 1단 없음(실측), Codex 1단은 Desktop 앱 미실행 조건 **미판정**(V39 재실측 조건부) | 2단 **전용**(3단 스크립트 금지, 캡처·입력 분리 승인) | V1 조건부(TEST-SE-10) |
+| REQ-CAP-08 | Agent Studio MCP 도구 서버(컴퓨터 사용·이미지 생성 API·브라우저 연계)를 양 에이전트에 제공(`mcpServers` / `-c mcp_servers.*`) — 범위 입력 S9.md §5(C9) | 2단 | V1 |
+| REQ-CAP-09 | Codex `CODEX_HOME` 공유 — **사용자 것 공유가 기본**(U9), 격리 옵션 = 분리 `CODEX_HOME`(로그인 재구성 필요, V37). 공유 시 Desktop 플러그인·스킬·로그인·MCP·`notify`/hooks 상속(S9 실측), 유효 설정 스냅숏(notify·hooks·실행 간 차이 포함)·앱 소유 스레드 필터 의무; 전역 `config.toml` 미수정 | 1단 | MVP-Core |
 
 ## 14. 테스트 요구 (TEST)
 
